@@ -1,0 +1,5 @@
+world:
+- ray:
+    origin: [0, 0, 0]
+    dir: [-1, 1, 0.5]
+    extent: 2

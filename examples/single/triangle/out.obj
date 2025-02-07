@@ -1,0 +1,6 @@
+# Recommended viewer: https://3dviewer.net/
+o tri0
+v 0.0 0.0 0.0
+v 1.0 1.0 1.0
+v 0.2 1.4 -0.5
+f -3 -2 -1

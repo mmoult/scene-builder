@@ -1,0 +1,36 @@
+pyramid:
+  color: [0.96862745, 0.82352941, 0.29803922]
+  data:
+  - triangle:
+    - [1, 0, 1]
+    - [-1, 0, 1]
+    - [0, 1, 0]
+  - triangle:
+    - [-1, 0, 1]
+    - [-1, 0, -1]
+    - [0, 1, 0]
+  - triangle:
+    - [-1, 0, -1]
+    - [1, 0, -1]
+    - [0, 1, 0]
+  - triangle:
+    - [1, 0, -1]
+    - [1, 0, 1]
+    - [0, 1, 0]
+  - rect:
+    - [1, 0, 1]
+    - [1, 0, -1]
+    - [-1, 0, -1]
+    - [-1, 0, 1]
+    # The base has an explicit black color and therefore does not inherit the instance color
+    color: [0.0, 0.0, 0.0]
+
+world:
+- instance: pyramid
+  scale: [1, 1, 1]
+  rotate: [0, 0, 0]
+  translate: [0, 0, 0]
+- ray:
+    origin: [0, 0, 0]
+    dir: [1, 1, 1]
+    extent: 5
