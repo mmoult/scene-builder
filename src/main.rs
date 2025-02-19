@@ -9,7 +9,7 @@ enum OutputFormat {
 }
 
 impl OutputFormat {
-	fn to_str(&self) -> &'static str {
+	fn to_str(self) -> &'static str {
 		match self {
 			Self::Verify => "verify",
 			Self::Json => "json",
@@ -90,10 +90,7 @@ fn main() -> Result<(), String> {
 	}
 
 	// parse file and check syntax
-	let input = match parse::parse_file(&args.input) {
-		Ok(dat) => dat,
-		Err(msg) => return Err(msg),
-	};
+	let input = parse::parse_file(&args.input)?;
 
 	// Convert from input data to IR data by checking grammar
 	// todo!("convert from input data to IR data by checking grammar");
