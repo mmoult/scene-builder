@@ -1,31 +1,33 @@
 pyramid:
-  color: [0.96862745, 0.82352941, 0.29803922]
+  color: [247, 210, 76]
+  base:
+    color: [0, 0, 0]
+    data:
+    - strip:
+      - [1, 0, 1]
+      - [1, 0, -1]
+      - [-1, 0, 1]
+      - [-1, 0, -1]
   data:
-  - triangle:
+  - strip:
     - [1, 0, 1]
     - [-1, 0, 1]
     - [0, 1, 0]
-  - triangle:
+  - strip:
     - [-1, 0, 1]
     - [-1, 0, -1]
     - [0, 1, 0]
-  - triangle:
+  - strip:
     - [-1, 0, -1]
     - [1, 0, -1]
     - [0, 1, 0]
-  - triangle:
+  - strip:
     - [1, 0, -1]
     - [1, 0, 1]
     - [0, 1, 0]
-  - rect:
-    - [1, 0, 1]
-    - [1, 0, -1]
-    - [-1, 0, -1]
-    - [-1, 0, 1]
-    # The base has an explicit black color and therefore does not inherit the instance color
-    color: [0.0, 0.0, 0.0]
+  - base  # The base has an explicit black color, thus doesn't inherit the sandy color
 
-world:
+data:
 - instance: pyramid
   scale: [1, 1, 1]
   rotate: [0, 0, 0]

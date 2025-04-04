@@ -1,10 +1,7 @@
-mod parse;
-mod types;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum OutputFormat {
 	Verify,
-	Json, // BVH
+	Bvh,
 	Obj,
 }
 
@@ -12,14 +9,16 @@ impl OutputFormat {
 	fn to_str(self) -> &'static str {
 		match self {
 			Self::Verify => "verify",
-			Self::Json => "json",
+			Self::Bvh => "bvh",
 			Self::Obj => "obj",
 		}
 	}
 }
 
 impl clap::ValueEnum for OutputFormat {
-	fn value_variants<'a>() -> &'a [Self] { &[Self::Verify, Self::Json, Self::Obj] }
+	fn value_variants<'a>() -> &'a [Self] {
+		&[Self::Verify, Self::Bvh, Self::Obj]
+	}
 
 	fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
 		Some(clap::builder::PossibleValue::new(self.to_str()))
@@ -28,7 +27,9 @@ impl clap::ValueEnum for OutputFormat {
 
 use std::fmt;
 impl fmt::Display for OutputFormat {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.to_str()) }
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.to_str())
+	}
 }
 
 /// Compile scene yaml files into BVH or OBJ format
@@ -75,8 +76,11 @@ fn main() -> Result<(), String> {
 
 	let out_format = if args.format != OutputFormat::Verify {
 		args.format
-	} else if args.out.ends_with(".json") {
-		OutputFormat::Json
+	} else if args.out.ends_with(".json")
+		|| args.out.ends_with(".yaml")
+		|| args.out.ends_with("yml")
+	{
+		OutputFormat::Bvh
 	} else if args.out.ends_with(".obj") {
 		OutputFormat::Obj
 	} else {
@@ -90,14 +94,29 @@ fn main() -> Result<(), String> {
 	}
 
 	// parse file and check syntax
-	let input = parse::parse_file(&args.input)?;
+	let path = args.input;
+	let file = match std::fs::read_to_string(&path) {
+		Ok(got_text) => got_text,
+		Err(_) => return Err(format!("Could not read input file: \"{path}\"!")),
+	};
+	use yaml_rust2::YamlLoader;
+	let docs = match YamlLoader::load_from_str(file.as_str()) {
+		Ok(docs) => docs,
+		Err(_) => return Err("Could not parse YAML from given file!".to_string()),
+	};
+
+	let num_docs = docs.len();
+	if num_docs != 1 {
+		return Err(format!(
+			"Incompatible number of YAML documents found in input! 1 expected, but {num_docs} seen."
+		));
+	}
 
 	// Convert from input data to IR data by checking grammar
-	// todo!("convert from input data to IR data by checking grammar");
 
 	match out_format {
 		OutputFormat::Verify => {},
-		OutputFormat::Json => {},
+		OutputFormat::Bvh => {},
 		OutputFormat::Obj => {},
 	}
 
