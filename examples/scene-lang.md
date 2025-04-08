@@ -230,9 +230,8 @@ When defining custom values, refrain from using the following keywords (ordered 
 
 ## World
 
-Each scene file must have a `data` sequence at the document root, which describes the objects in the world. The world
+Each scene file may have a `data` sequence at the document root, which describes the objects in the world. This
 sequence is a list of objects which must be rendered. In other words, any object defined outside the scope of world will
 *not* be used unless there exists a reference to them within world's list (either directly or by recursive reference).
 
-In this way, the scene root is a [custom object](#custom), with elevated importance and with the added qualification
-that `data` must be a present field.
+In this way, the scene root is a [custom object](#custom) at the file root.

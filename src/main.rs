@@ -1,3 +1,5 @@
+mod ir;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum OutputFormat {
 	Verify,
@@ -40,7 +42,8 @@ struct Args {
 	#[arg(short, long, default_value_t = 0)]
 	box_size: u8,
 
-	/// Each box holding multiple nodes is converted into a box holding single-child boxes
+	/// Each box holding multiple nodes is converted into a box holding single-child boxes. In other words, transforms
+	/// the scene such that every box either holds one child of any type OR holds multiple boxes
 	#[arg(short, long, action)]
 	double: bool,
 
@@ -61,7 +64,7 @@ struct Args {
 	#[arg(short = 't', long, action)]
 	root: bool,
 
-	/// Force instance nodes to hold only boxes.
+	/// Force instance nodes to hold only boxes directly.
 	#[arg(short, long, action)]
 	wrap: bool,
 
@@ -74,11 +77,11 @@ fn main() -> Result<(), String> {
 	use clap::Parser;
 	let args = Args::parse();
 
-	let out_format = if args.format != OutputFormat::Verify {
+	let out_format = if args.format != OutputFormat::Verify || args.out.is_empty() {
 		args.format
 	} else if args.out.ends_with(".json")
 		|| args.out.ends_with(".yaml")
-		|| args.out.ends_with("yml")
+		|| args.out.ends_with(".yml")
 	{
 		OutputFormat::Bvh
 	} else if args.out.ends_with(".obj") {
@@ -108,16 +111,32 @@ fn main() -> Result<(), String> {
 	let num_docs = docs.len();
 	if num_docs != 1 {
 		return Err(format!(
-			"Incompatible number of YAML documents found in input! 1 expected, but {num_docs} seen."
+			"Incompatible number of YAML documents found in input! 1 expected, but {num_docs} \
+			 seen."
 		));
 	}
 
 	// Convert from input data to IR data by checking grammar
+	let scene = ir::to_ir(&docs[0])?;
+
+	// If we are simply verifying the scene, we are done now.
+	if let OutputFormat::Verify = out_format {
+		return Ok(());
+	}
+	// Otherwise, we want to apply transformations given by the command line arguments. Then we can
+	// translate into the target format.
+	if args.raw {
+		if let OutputFormat::Bvh = out_format {
+			return Err("Cannot use option `raw` with a BVH target!".to_string());
+		}
+	} else {
+		// Handle all the box-related transformations
+	}
 
 	match out_format {
-		OutputFormat::Verify => {},
 		OutputFormat::Bvh => {},
 		OutputFormat::Obj => {},
+		OutputFormat::Verify => panic!("Verify case should have exited earlier!"),
 	}
 
 	Ok(())
