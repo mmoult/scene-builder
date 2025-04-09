@@ -28,51 +28,14 @@ impl fmt::Display for Node {
 	}
 }
 
-pub struct Point3D {
-	pub x: f64,
-	pub y: f64,
-	pub z: f64,
-}
-use std::ops::{Index, IndexMut};
-impl Index<usize> for Point3D {
-	type Output = f64;
-
-	fn index(&self, index: usize) -> &Self::Output {
-		match index {
-			0 => &self.x,
-			1 => &self.y,
-			2 => &self.z,
-			_ => panic!("Index to Point3D is out of bounds!"),
-		}
-	}
-}
-impl IndexMut<usize> for Point3D {
-	fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-		match index {
-			0 => &mut self.x,
-			1 => &mut self.y,
-			2 => &mut self.z,
-			_ => panic!("Index to Point3D is out of bounds!"),
-		}
-	}
-}
-impl Point3D {
-	fn new(default: f64) -> Point3D {
-		Point3D {
-			x: default,
-			y: default,
-			z: default,
-		}
-	}
-}
+pub type Point3D = nalgebra::Vector3<f64>;
+fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
 }
 impl Strip {
-	fn new() -> Strip {
-		Strip { vals: vec![] }
-	}
+	fn new() -> Strip { Strip { vals: vec![] } }
 }
 
 pub struct Ray {
@@ -105,9 +68,7 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	fn new() -> Sequence {
-		Sequence { vals: vec![] }
-	}
+	fn new() -> Sequence { Sequence { vals: vec![] } }
 }
 
 pub struct Scene {
@@ -131,7 +92,7 @@ fn as_3d(scene: &Scene, node: &Node) -> Result<Point3D, String> {
 					"Could not resolve 3D point from a sequence with {len} dimensions!"
 				));
 			}
-			let mut ret = Point3D::new(0.0);
+			let mut ret = new_point(0.0);
 			for i in 0..3 {
 				match seq.vals[i] {
 					Node::Number(num) => ret[i] = num,
@@ -210,9 +171,9 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				// This is not, in fact, a custom, it is an instance. Convert it to such
 				let mut affected = Node::Bool(false); // guaranteed to be replaced since conditional forces it
 				// These can be replaced, but all are optional:
-				let mut scale = Point3D::new(1.0);
-				let mut rotate = Point3D::new(0.0);
-				let mut translate = Point3D::new(0.0);
+				let mut scale = new_point(1.0);
+				let mut rotate = new_point(0.0);
+				let mut translate = new_point(0.0);
 				let mut fields = HashMap::new();
 
 				for (key, value) in scene.mappings[name_at].fields.iter() {

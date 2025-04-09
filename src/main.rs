@@ -1,4 +1,8 @@
+mod bvh;
 mod ir;
+mod obj;
+mod report;
+mod transform;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum OutputFormat {
@@ -18,9 +22,7 @@ impl OutputFormat {
 }
 
 impl clap::ValueEnum for OutputFormat {
-	fn value_variants<'a>() -> &'a [Self] {
-		&[Self::Verify, Self::Bvh, Self::Obj]
-	}
+	fn value_variants<'a>() -> &'a [Self] { &[Self::Verify, Self::Bvh, Self::Obj] }
 
 	fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
 		Some(clap::builder::PossibleValue::new(self.to_str()))
@@ -29,9 +31,7 @@ impl clap::ValueEnum for OutputFormat {
 
 use std::fmt;
 impl fmt::Display for OutputFormat {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.to_str())
-	}
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.to_str()) }
 }
 
 /// Compile scene yaml files into BVH or OBJ format
@@ -42,8 +42,9 @@ struct Args {
 	#[arg(short, long, default_value_t = 0)]
 	box_size: u8,
 
-	/// Each box holding multiple nodes is converted into a box holding single-child boxes. In other words, transforms
-	/// the scene such that every box either holds one child of any type OR holds multiple boxes
+	/// Each box holding multiple nodes is converted into a box holding single-child boxes. In
+	/// other words, transforms the scene such that every box either holds one child of any type
+	/// OR holds multiple boxes
 	#[arg(short, long, action)]
 	double: bool,
 
@@ -133,10 +134,33 @@ fn main() -> Result<(), String> {
 		// Handle all the box-related transformations
 	}
 
-	match out_format {
-		OutputFormat::Bvh => {},
-		OutputFormat::Obj => {},
+	let lines = match out_format {
+		OutputFormat::Bvh => bvh::to_bvh(&scene),
+		OutputFormat::Obj => obj::to_obj(&scene),
 		OutputFormat::Verify => panic!("Verify case should have exited earlier!"),
+	};
+	if args.out.is_empty() {
+		for line in lines.iter() {
+			println!("{}", line);
+		}
+	} else {
+		use std::fs::File;
+		let mut writer = match File::create(&args.out) {
+			Ok(f) => f,
+			Err(_) => return Err(format!("Could not write output to file \"{}\"!", &args.out)),
+		};
+		use std::io::Write;
+		for line in lines.iter() {
+			match writeln!(writer, "{}", line) {
+				Ok(_) => {},
+				Err(_) => {
+					return Err(format!(
+						"Failure in writing output to file \"{}\"!",
+						&args.out
+					));
+				},
+			}
+		}
 	}
 
 	Ok(())
