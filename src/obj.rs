@@ -4,8 +4,6 @@ use crate::ir::{Node, Point3D, Scene};
 use crate::report::warn;
 use nalgebra::matrix;
 
-type TransformMat = nalgebra::Matrix4x3<f64>;
-
 fn update_color(
 	new: Option<&Node>,
 	lines: &mut Vec<String>,
@@ -14,9 +12,7 @@ fn update_color(
 	colors: &mut HashSet<usize>,
 ) {
 	match new {
-		None => {
-			return;
-		},
+		None => {},
 		Some(node) => {
 			match node {
 				Node::Sequence(idx) => {
@@ -49,6 +45,7 @@ fn update_color(
 							))
 						}
 					}
+					lines.push("".to_string());
 					lines.push(format!("newmtl color{}", *idx));
 					lines.push(format!("Kd {} {} {}", fcolor.x, fcolor.y, fcolor.z));
 					lines.push("Ks 0.5 0.5 0.5".to_string());
@@ -69,6 +66,8 @@ fn update_color(
 	}
 }
 
+use crate::ir::TransformMat;
+
 fn handle_node(
 	node: &Node,
 	lines: &mut Vec<String>,
@@ -85,11 +84,11 @@ fn handle_node(
 			let origin = transform * ray.origin;
 			let direction = transform * (ray.direction * ray.extent);
 			let end = origin + direction;
+			lines.push("".to_string());
 			lines.push(format!("o ray{}", *idx));
 			lines.push(format!("v {} {} {}", origin.x, origin.y, origin.z));
 			lines.push(format!("v {} {} {}", end.x, end.y, end.z));
 			lines.push("l -2 -1".to_string()); // line from penultimate vertex to ultimate
-			lines.push("".to_string());
 		},
 		Node::Instance(idx) => {
 			let instance = &scene.instances[*idx];
@@ -100,18 +99,12 @@ fn handle_node(
 		Node::Mapping(idx) => {
 			let map = &scene.mappings[*idx];
 			let color_now = map.fields.get("color");
-			match map.fields.get("data") {
-				None => {},
-				Some(node) => match node {
-					Node::Sequence(idx) => {
-						let seq = &scene.sequences[*idx];
-						for node in seq.vals.iter() {
-							update_color(color_now, lines, scene, color, colors);
-							handle_node(node, lines, scene, color, colors, transform);
-						}
-					},
-					_ => {},
-				},
+			if let Some(Node::Sequence(idx)) = map.fields.get("data") {
+				let seq = &scene.sequences[*idx];
+				for node in seq.vals.iter() {
+					update_color(color_now, lines, scene, color, colors);
+					handle_node(node, lines, scene, color, colors, transform);
+				}
 			}
 		},
 		_ => {}, // For non-objects encountered alone, we are missing the required context to print

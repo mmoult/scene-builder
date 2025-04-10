@@ -6,11 +6,11 @@ pub enum Node {
 	Number(f64),
 	Bool(bool),
 	// link to some other value held by the scene
+	Sequence(usize),
 	Strip(usize),
 	Ray(usize),
 	Instance(usize),
 	Mapping(usize),
-	Sequence(usize),
 }
 
 use std::fmt;
@@ -19,23 +19,36 @@ impl fmt::Display for Node {
 		match self {
 			Node::Number(v) => write!(f, "{}", v),
 			Node::Bool(v) => write!(f, "{}", v),
+			Node::Sequence(i) => write!(f, "Sequence{}", i),
 			Node::Strip(i) => write!(f, "Strip{}", i),
 			Node::Ray(i) => write!(f, "Ray{}", i),
 			Node::Instance(i) => write!(f, "Instance{}", i),
 			Node::Mapping(i) => write!(f, "Mapping{}", i),
-			Node::Sequence(i) => write!(f, "Sequence{}", i),
 		}
 	}
 }
 
+pub struct Sequence {
+	pub vals: Vec<Node>,
+}
+impl Sequence {
+	fn new() -> Sequence {
+		Sequence { vals: vec![] }
+	}
+}
+
 pub type Point3D = nalgebra::Vector3<f64>;
-fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
+fn new_point(val: f64) -> Point3D {
+	Point3D::new(val, val, val)
+}
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
 }
 impl Strip {
-	fn new() -> Strip { Strip { vals: vec![] } }
+	fn new() -> Strip {
+		Strip { vals: vec![] }
+	}
 }
 
 pub struct Ray {
@@ -45,12 +58,90 @@ pub struct Ray {
 	pub fields: HashMap<String, Node>,
 }
 
+pub type TransformMat = nalgebra::Matrix4x3<f64>;
+pub type SquareMat = nalgebra::Matrix3<f64>;
+
 pub struct Instance {
 	pub affected: Node,
 	pub scale: Point3D,
 	pub rotate: Point3D,
 	pub translate: Point3D,
 	pub fields: HashMap<String, Node>,
+}
+impl Instance {
+	fn obj_to_world(&self) -> TransformMat {
+		let scale_mat = matrix![
+			self.scale.x, 0.0, 0.0;
+			0.0, self.scale.y, 0.0;
+			0.0, 0.0, self.scale.z;
+		];
+		let rotate_rad = Point3D::new(
+			self.rotate.x.to_radians(),
+			self.rotate.y.to_radians(),
+			self.rotate.z.to_radians(),
+		);
+		let rx = matrix![
+			1.0, 0.0, 0.0;
+			0.0, rotate_rad.x.cos(), rotate_rad.x.sin();
+			0.0, -rotate_rad.x.sin(), rotate_rad.x.cos();
+		];
+		let ry = matrix![
+			rotate_rad.y.cos(), 0.0, -rotate_rad.y.sin();
+			0.0, 1.0, 0.0;
+			rotate_rad.y.sin(), 0.0, rotate_rad.x.cos();
+		];
+		let rz = matrix![
+			rotate_rad.y.cos(), rotate_rad.y.sin(), 0.0;
+			-rotate_rad.y.sin(), rotate_rad.x.cos(), 0.0;
+			0.0, 0.0, 1.0;
+		];
+
+		let m = scale_mat * rx * ry * rz;
+		// contruct a homogenous matrix to allow for translation
+		matrix![
+			m[(0, 0)], m[(0, 1)], m[(0, 2)];
+			m[(1, 0)], m[(1, 1)], m[(1, 2)];
+			m[(2, 0)], m[(2, 1)], m[(2, 2)];
+			self.translate.x, self.translate.y, self.translate.z;
+		]
+	}
+
+	fn world_to_obj(&self) -> TransformMat {
+		let scale_mat = matrix![
+			1.0 / self.scale.x, 0.0, 0.0;
+			0.0, 1.0 / self.scale.y, 0.0;
+			0.0, 0.0, 1.0 / self.scale.z;
+		];
+		let rotate_rad = Point3D::new(
+			-self.rotate.x.to_radians(),
+			-self.rotate.y.to_radians(),
+			-self.rotate.z.to_radians(),
+		);
+		let rx = matrix![
+			1.0, 0.0, 0.0;
+			0.0, rotate_rad.x.cos(), rotate_rad.x.sin();
+			0.0, -rotate_rad.x.sin(), rotate_rad.x.cos();
+		];
+		let ry = matrix![
+			rotate_rad.y.cos(), 0.0, -rotate_rad.y.sin();
+			0.0, 1.0, 0.0;
+			rotate_rad.y.sin(), 0.0, rotate_rad.x.cos();
+		];
+		let rz = matrix![
+			rotate_rad.y.cos(), rotate_rad.y.sin(), 0.0;
+			-rotate_rad.y.sin(), rotate_rad.x.cos(), 0.0;
+			0.0, 0.0, 1.0;
+		];
+
+		let m = rz * ry * rx * scale_mat;
+		// contruct a homogenous matrix to allow for translation
+		matrix![
+			m[(0, 0)], m[(0, 1)], m[(0, 2)];
+			m[(1, 0)], m[(1, 1)], m[(1, 2)];
+			m[(2, 0)], m[(2, 1)], m[(2, 2)];
+			self.translate.x, self.translate.y, self.translate.z;
+		]
+	}
 }
 
 pub struct Mapping {
@@ -64,20 +155,13 @@ impl Mapping {
 	}
 }
 
-pub struct Sequence {
-	pub vals: Vec<Node>,
-}
-impl Sequence {
-	fn new() -> Sequence { Sequence { vals: vec![] } }
-}
-
 pub struct Scene {
 	pub world: Node,
+	pub sequences: Vec<Sequence>,
 	pub strips: Vec<Strip>,
 	pub rays: Vec<Ray>,
 	pub instances: Vec<Instance>,
 	pub mappings: Vec<Mapping>,
-	pub sequences: Vec<Sequence>,
 }
 
 fn as_3d(scene: &Scene, node: &Node) -> Result<Point3D, String> {
@@ -134,15 +218,43 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 		},
 		Yaml::Boolean(val) => Node::Bool(*val),
 		Yaml::Array(arr) => {
-			let seq_at = scene.sequences.len();
-			scene.sequences.push(Sequence::new());
+			// Aggressively try to turn this sequence into a strip. Even if it isn't intended to be
+			// a strip, but it matches all the characteristics, we don't lose anything by
+			// normalizing it.
+			let mut nodes = vec![];
+			let mut points = vec![];
+			let mut can_strip = arr.len() >= 3;
 
 			for element in arr {
 				let node = parse(element, namespace, scene)?;
-				scene.sequences[seq_at].vals.push(node);
+				nodes.push(node);
+				if can_strip {
+					match as_3d(scene, &node) {
+						Ok(point) => {
+							points.push(point);
+						},
+						Err(_) => {
+							can_strip = false;
+						},
+					}
+				}
 			}
 
-			Node::Sequence(seq_at)
+			if can_strip {
+				let strip_at = scene.strips.len();
+				scene.strips.push(Strip::new());
+				for point in points {
+					scene.strips[strip_at].vals.push(point);
+				}
+				Node::Strip(strip_at)
+			} else {
+				let seq_at = scene.sequences.len();
+				scene.sequences.push(Sequence::new());
+				for node in nodes {
+					scene.sequences[seq_at].vals.push(node);
+				}
+				Node::Sequence(seq_at)
+			}
 		},
 		Yaml::Hash(map) => {
 			let name_at = scene.mappings.len();
@@ -156,17 +268,43 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				let node = parse(val, namespace, scene)?;
 				scene.mappings[name_at].fields.insert(name.clone(), node);
 			}
-			let mut ret = Node::Mapping(name_at);
+			namespace.pop();
 
 			// Create the result from the top namespace. Recognize various types:
 			if let Some(node) = scene.mappings[name_at].fields.get("data") {
-				// Check that data is actually a sequence. That is all we require of it
+				// Check that data is actually a sequence holding objects
 				match node {
-					Node::Sequence(_) => (),
+					Node::Sequence(idx) => {
+						let seq = &scene.sequences[*idx];
+						for i in 0..seq.vals.len() {
+							match seq.vals[i] {
+								Node::Number(_) => {
+									return Err(format!(
+										"All elements in `data` must be objects, but a number was \
+										 found at index {i}!"
+									));
+								},
+								Node::Bool(_) => {
+									return Err(format!(
+										"All elements in `data` must be objects, but a boolean \
+										 was found at index {i}!"
+									));
+								},
+								Node::Sequence(_) => {
+									return Err(format!(
+										"All elements in `data` must be objects, but a sequence \
+										 was found at index {i}!"
+									));
+								},
+								_ => {},
+							}
+						}
+					},
 					_ => {
 						return Err("Field `data` must be a sequence!".to_string());
 					},
 				}
+				Node::Mapping(name_at)
 			} else if scene.mappings[name_at].fields.contains_key("instance") {
 				// This is not, in fact, a custom, it is an instance. Convert it to such
 				let mut affected = Node::Bool(false); // guaranteed to be replaced since conditional forces it
@@ -178,6 +316,24 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 
 				for (key, value) in scene.mappings[name_at].fields.iter() {
 					if key == "instance" {
+						match value {
+							Node::Number(_) => {
+								return Err("Field `instance` must hold the value of some other \
+								            object, not a number!"
+									.to_string());
+							},
+							Node::Bool(_) => {
+								return Err("Field `instance` must hold the value of some other \
+								            object, not a bool!"
+									.to_string());
+							},
+							Node::Sequence(_) => {
+								return Err("Field `instance` must hold the value of some other \
+								            object, not a sequence!"
+									.to_string());
+							},
+							_ => {},
+						}
 						affected = *value;
 					} else if key == "scale" {
 						scale = as_3d(scene, value)?;
@@ -201,123 +357,66 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				// We can safely remove the old mapping since we parsed it directly (and therefore,
 				// it couldn't have saved and referenced elsewhere).
 				scene.mappings.pop();
-				ret = Node::Instance(scene_at);
-			}
-			if scene.mappings[name_at].fields.contains_key("strip") {
-				match scene.mappings[name_at].fields["strip"] {
-					Node::Sequence(idx) => {
-						// Attempt to convert the sequence at the index into a strip
-						// A strip is a list of 3D points, so we convert each and add them to a
-						// running strip object
-						let mut strip = Strip::new();
-						for element in scene.sequences[idx].vals.iter() {
-							strip.vals.push(as_3d(scene, element)?);
-						}
-						let vertices = strip.vals.len();
-						if vertices < 3 {
-							return Err(format!(
-								"Cannot create a strip with only {vertices} vertices! Must have \
-								 at least 3."
-							));
-						}
-						let strip_at = scene.strips.len();
-						scene.strips.push(strip);
-						// Replace the pre-existing sequence with the created strip in-place
-						scene.mappings[name_at]
-							.fields
-							.insert("strip".to_string(), Node::Strip(strip_at));
-					},
-					_ => {
-						return Err("Unexpected value found for `strip` keyword. Must be a \
-						            sequence!"
-							.to_string());
-					},
-				}
-			}
-			if scene.mappings[name_at].fields.contains_key("ray") {
-				match scene.mappings[name_at].fields["ray"] {
-					Node::Mapping(idx) => {
-						// Attempt to convert mapping into a ray
-						let mut origin = None;
-						let mut direction = None;
-						let mut extent = None;
-						let mut fields = HashMap::new();
+				Node::Instance(scene_at)
+			} else if scene.mappings[name_at].fields.contains_key("origin")
+				&& scene.mappings[name_at].fields.contains_key("direction")
+				&& scene.mappings[name_at].fields.contains_key("extent")
+			{
+				// This is actually a ray
+				let mut origin = new_point(1.0);
+				let mut direction = new_point(1.0);
+				let mut extent = 0.0;
+				let mut fields = HashMap::new();
 
-						for (key, value) in scene.mappings[idx].fields.iter() {
-							if key == "origin" {
-								origin = Some(as_3d(scene, value)?);
-							} else if key == "direction" {
-								direction = Some(as_3d(scene, value)?);
-							} else if key == "extent" {
-								extent = match value {
-									Node::Number(num) => Some(*num),
-									_ => {
-										return Err(format!(
-											"Expected number for `ray` field `extent`, but \
-											 {value} was found instead!"
-										));
-									},
-								};
-							} else {
-								fields.insert(key.clone(), *value);
-							}
+				for (key, value) in scene.mappings[name_at].fields.iter() {
+					if key == "origin" {
+						origin = as_3d(scene, value)?;
+					} else if key == "direction" {
+						direction = as_3d(scene, value)?;
+					} else if key == "extent" {
+						match value {
+							Node::Number(val) => {
+								extent = *val;
+							},
+							_ => {
+								return Err("Field `extent` in ray must be a float!".to_string());
+							},
 						}
-						let origin = match origin {
-							None => {
-								return Err("Missing field `origin` in ray object!".to_string());
-							},
-							Some(u) => u,
-						};
-						let direction = match direction {
-							None => {
-								return Err("Missing field `direction` in ray object!".to_string());
-							},
-							Some(u) => u,
-						};
-						let extent = match extent {
-							None => {
-								return Err("Missing field `extent` in ray object!".to_string());
-							},
-							Some(u) => u,
-						};
-						let ray = Ray {
-							origin,
-							direction,
-							extent,
-							fields,
-						};
-						let ray_at = scene.rays.len();
-						scene.rays.push(ray);
-						scene.mappings[name_at]
-							.fields
-							.insert("ray".to_string(), Node::Ray(ray_at));
-					},
-					_ => {
-						return Err(
-							"Unexpected value found for `ray` keyword. Must be a mapping!"
-								.to_string(),
-						);
-					},
+					} else {
+						fields.insert(key.clone(), *value);
+					}
 				}
+				let ray = Ray {
+					origin,
+					direction,
+					extent,
+					fields,
+				};
+				let ray_at = scene.rays.len();
+				scene.rays.push(ray);
+				// We can safely remove the old mapping since we parsed it directly (and therefore,
+				// it couldn't have saved and referenced elsewhere).
+				scene.mappings.pop();
+				Node::Ray(ray_at)
+			} else {
+				Node::Mapping(name_at)
 			}
-
-			namespace.pop();
-			ret
 		},
 		_ => return Err("Unsupported YAML value found while parsing scene data!".to_string()),
 	};
 	Ok(ret)
 }
 
+use nalgebra::matrix;
 use yaml_rust2::Yaml;
 pub fn to_ir(input: &Yaml) -> Result<Scene, String> {
 	let mut scene = Scene {
 		world: Node::Bool(false),
+		sequences: vec![],
 		strips: vec![],
 		rays: vec![],
 		instances: vec![],
 		mappings: vec![],
-		sequences: vec![],
 	};
 
 	let mut namespace: Vec<usize> = vec![];

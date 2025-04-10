@@ -28,10 +28,10 @@ Color is a notable optional field, which `strip` uses it for its faces (both fro
 ### Strip
 
 A `strip` (short for [Triangle strip](https://en.wikipedia.org/wiki/Triangle_strip)) is a sequence of *at least* three
-3-dimensional vertices. For example, the simplest `strip` is a triangle:
+3-dimensional vertices. For example, the simplest is a triangle:
 
 ```
-strip
+strip:
 - [0, 1, 2]
 - [3, 4, 5]
 - [6, 7, 8]
@@ -40,7 +40,7 @@ strip
 To avoid data duplication, more vertices may be defined within the same strip. Here is an example of a quadrilateral:
 
 ```
-strip
+strip:
 - (0, 0, 0)
 - (1, 1, 1)
 - (2, 0, 1)
@@ -156,11 +156,11 @@ Here is a complex custom object, demonstrating several custom fields:
 aura: 3.2
 color: [255, 0, 0]
 data:
-- strip:
+-
   - [1, -1, 2]
   - [0.5, 1, 1]
   - [-1, -0.5, 1.5]
-- ray:
+-
     origin: [1, 2, 3]
     direction: [0, 0.5, 1.0]
     extent: 6
@@ -173,7 +173,7 @@ matches the type expected at use). This is valuable for reducing redundancy.
 
 ```
 x_pos: 3.14159
-my-tri: strip:
+my-tri:
 - [x_pos, 0, 0]
 - [x_pos, 1.0, 2.0]
 - [-3, 0.5, 3.0]
@@ -219,13 +219,14 @@ color from the root-level `foo`. In summary:
 
 ### Keywords
 
-When defining custom values, refrain from using the following keywords (ordered alphabetically):
+When defining custom values, refrain from using the following field names (ordered alphabetically):
 
 - `data`
+- `direction`
+- `extent`
 - `false`
 - `instance`
-- `ray`
-- `strip`
+- `origin`
 - `true`
 
 ## World
