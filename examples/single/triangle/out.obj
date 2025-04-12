@@ -1,6 +1,27 @@
 # Recommended viewer: https://3dviewer.net/
-o tri0
-v 0.0 0.0 0.0
-v 1.0 1.0 1.0
+
+newmtl color4
+Kd 0 0 0
+Ks 0.5 0.5 0.5
+Ns 18.0
+
+usemtl color4
+
+o box0
+v 0 0 -0.5
+v 0 0 1
+v 0 1.4 -0.5
+v 0 1.4 1
+v 1 0 -0.5
+v 1 0 1
+v 1 1.4 -0.5
+v 1 1.4 1
+l -8 -7 -5 -6
+l -3 -1 -2 -4
+l -8 -4 -3 -7 -5 -1 -2 -6 -8
+
+o strip0
+v 0 0 0
+v 1 1 1
 v 0.2 1.4 -0.5
 f -3 -2 -1

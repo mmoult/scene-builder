@@ -32,23 +32,17 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	fn new() -> Sequence {
-		Sequence { vals: vec![] }
-	}
+	fn new() -> Sequence { Sequence { vals: vec![] } }
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
-fn new_point(val: f64) -> Point3D {
-	Point3D::new(val, val, val)
-}
+pub fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
 }
 impl Strip {
-	fn new() -> Strip {
-		Strip { vals: vec![] }
-	}
+	fn new() -> Strip { Strip { vals: vec![] } }
 }
 
 pub struct Ray {
@@ -59,7 +53,8 @@ pub struct Ray {
 }
 
 pub type TransformMat = nalgebra::Matrix4x3<f64>;
-pub type SquareMat = nalgebra::Matrix3<f64>;
+pub type SquareMat = nalgebra::Matrix4<f64>;
+pub type HomoPoint = nalgebra::Vector4<f64>;
 
 pub struct Instance {
 	pub affected: Node,
@@ -69,7 +64,7 @@ pub struct Instance {
 	pub fields: HashMap<String, Node>,
 }
 impl Instance {
-	fn obj_to_world(&self) -> TransformMat {
+	pub fn obj_to_world(&self) -> TransformMat {
 		let scale_mat = matrix![
 			self.scale.x, 0.0, 0.0;
 			0.0, self.scale.y, 0.0;
@@ -106,7 +101,7 @@ impl Instance {
 		]
 	}
 
-	fn world_to_obj(&self) -> TransformMat {
+	pub fn world_to_obj(&self) -> TransformMat {
 		let scale_mat = matrix![
 			1.0 / self.scale.x, 0.0, 0.0;
 			0.0, 1.0 / self.scale.y, 0.0;
@@ -142,16 +137,39 @@ impl Instance {
 			self.translate.x, self.translate.y, self.translate.z;
 		]
 	}
+
+	pub fn homogenize(&self, m: &TransformMat) -> SquareMat {
+		matrix![
+			m[(0, 0)], m[(0, 1)], m[(0, 2)], 0.0;
+			m[(1, 0)], m[(1, 1)], m[(1, 2)], 0.0;
+			m[(2, 0)], m[(2, 1)], m[(2, 2)], 0.0;
+			m[(3, 0)], m[(3, 1)], m[(3, 2)], 1.0;
+		]
+	}
+
+	pub fn heterogenize(&self, v: &HomoPoint) -> Point3D { Point3D::new(v.x, v.y, v.z) }
 }
 
 pub struct Mapping {
 	pub fields: HashMap<String, Node>,
+	pub is_box: bool,
+	pub min: Point3D,
+	pub max: Point3D,
 }
 impl Mapping {
 	fn new() -> Mapping {
 		Mapping {
 			fields: HashMap::new(),
+			is_box: false,
+			min: new_point(0.0),
+			max: new_point(0.0),
 		}
+	}
+
+	pub fn as_box(&mut self, min: &Point3D, max: &Point3D) {
+		self.is_box = true;
+		self.min = *min;
+		self.max = *max;
 	}
 }
 

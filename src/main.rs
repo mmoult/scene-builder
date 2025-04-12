@@ -42,6 +42,10 @@ struct Args {
 	#[arg(short, long, default_value_t = 0)]
 	box_size: u8,
 
+	/// Collapses boxes with only one child. Occurs before other box operations (double and root).
+	#[arg(short, long, action)]
+	collapse: bool,
+
 	/// Each box holding multiple nodes is converted into a box holding single-child boxes. In
 	/// other words, transforms the scene such that every box either holds one child of any type
 	/// OR holds multiple boxes
@@ -118,7 +122,7 @@ fn main() -> Result<(), String> {
 	}
 
 	// Convert from input data to IR data by checking grammar
-	let scene = ir::to_ir(&docs[0])?;
+	let mut scene = ir::to_ir(&docs[0])?;
 
 	// If we are simply verifying the scene, we are done now.
 	if let OutputFormat::Verify = out_format {
@@ -132,6 +136,14 @@ fn main() -> Result<(), String> {
 		}
 	} else {
 		// Handle all the box-related transformations
+		transform::transform(
+			&mut scene,
+			args.collapse,
+			args.root,
+			args.wrap,
+			args.box_size,
+			args.double,
+		);
 	}
 
 	let lines = match out_format {

@@ -1,7 +1,7 @@
 pyramid:
   color: [247, 210, 76]
   base:
-    color: [0, 0, 0]
+    color: [100, 80, 20]
     data:
     -
       - [1, 0, 1]
@@ -25,7 +25,7 @@ pyramid:
     - [1, 0, -1]
     - [1, 0, 1]
     - [0, 1, 0]
-  - base  # The base has an explicit black color, thus doesn't inherit the sandy color
+  - base  # The base has an explicit dark color, thus doesn't inherit the sandy color
 
 data:
 - instance: pyramid
