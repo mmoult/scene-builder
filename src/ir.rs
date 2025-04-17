@@ -101,6 +101,7 @@ impl Instance {
 		]
 	}
 
+	#[allow(unused)]
 	pub fn world_to_obj(&self) -> TransformMat {
 		let scale_mat = matrix![
 			1.0 / self.scale.x, 0.0, 0.0;
@@ -182,7 +183,7 @@ pub struct Scene {
 	pub mappings: Vec<Mapping>,
 }
 
-fn as_3d(scene: &Scene, node: &Node) -> Result<Point3D, String> {
+pub fn as_3d(scene: &Scene, node: &Node) -> Result<Point3D, String> {
 	match node {
 		Node::Sequence(seq_at) => {
 			// Not only must this be a sequence, but it must have three elements, each of

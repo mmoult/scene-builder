@@ -219,15 +219,22 @@ color from the root-level `foo`. In summary:
 
 ### Keywords
 
-When defining custom values, refrain from using the following field names (ordered alphabetically):
+When defining custom values, refrain from using the following names, which have builtin meaning
+(ordered alphabetically):
 
-- `data`
-- `direction`
-- `extent`
-- `false`
-- `instance`
-- `origin`
-- `true`
+- `color`: field expecting a 3-component vector of uint (where 0 is none and 255 is max). Inherited from parent if not
+           provided. If none found, black is used (0, 0, 0)
+- `data`: used to create a custom object
+- `direction`: ray field expecting a 3-component float vector value
+- `extent`: ray field expecting a float length value
+- `false`: boolean constant value
+- `fill`: custom object field expecting a boolean value whether the box should be opaque (true) or wireframe (false).
+          Defaults to false if not provided.
+- `instance`: instance field expecting a reference or literal object to transform
+- `max`: custom object field expecting a 3-component float sequence specifying maxima
+- `min`: custom object field expecting a 3-component float sequence specifying minima
+- `origin`: ray field expecting a 3-component float vector value
+- `true`: boolean constant value
 
 ## World
 

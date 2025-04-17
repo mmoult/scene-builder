@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
-    - name: Test
+    - name: Test Unit
       run: cargo test --verbose
     - name: Clippy
       run: cargo clippy --verbose -- -D warnings
@@ -25,3 +25,6 @@ jobs:
       run: cargo install cargo-audit
     - name: Audit
       run: cargo audit
+    - name: Integration Test
+      working-directory: ${{ github.workspace }}/test
+      run: ./test.py

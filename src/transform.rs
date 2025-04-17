@@ -1,4 +1,4 @@
-use crate::ir::{Node, Point3D, Scene, new_point};
+use crate::ir::{Node, Point3D, Scene, as_3d, new_point};
 
 impl Node {
 	pub fn set_bounds(&self, scene: &mut Scene) -> (Point3D, Point3D) {
@@ -47,6 +47,25 @@ impl Node {
 				let mut maxs = new_point(f64::NAN);
 
 				let map = &scene.mappings[*idx];
+
+				if let Some(n) = map.fields.get("min") {
+					if let Ok(pt) = as_3d(scene, n) {
+						for i in 0..3 {
+							mins[i] = f64::min(mins[i], pt[i]);
+							maxs[i] = f64::max(maxs[i], pt[i]);
+						}
+					}
+				}
+
+				if let Some(n) = map.fields.get("max") {
+					if let Ok(pt) = as_3d(scene, n) {
+						for i in 0..3 {
+							mins[i] = f64::min(mins[i], pt[i]);
+							maxs[i] = f64::max(maxs[i], pt[i]);
+						}
+					}
+				}
+
 				if let Some(Node::Sequence(idx)) = map.fields.get("data") {
 					let seq = &scene.sequences[*idx];
 					for element in seq.vals.clone() {
@@ -58,8 +77,10 @@ impl Node {
 					}
 				}
 
-				let map = &mut scene.mappings[*idx];
-				map.as_box(&mins, &maxs);
+				if !mins.x.is_nan() {
+					let map = &mut scene.mappings[*idx];
+					map.as_box(&mins, &maxs);
+				}
 				(mins, maxs)
 			},
 			_ => (new_point(f64::NAN), new_point(f64::NAN)),
@@ -76,6 +97,9 @@ pub fn transform(
 	double: bool,
 ) {
 	// activate box nodes in scene (or only ones with more than one child if collapse)
+	if collapse {
+		todo!();
+	}
 
 	if root {
 		let old_world = scene.world;
