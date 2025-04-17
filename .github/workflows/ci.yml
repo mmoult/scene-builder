@@ -21,10 +21,13 @@ jobs:
       run: cargo test --verbose
     - name: Clippy
       run: cargo clippy --verbose -- -D warnings
-    - name: Install cargo-audit
-      run: cargo install cargo-audit
-    - name: Audit
-      run: cargo audit
+
+    # Auditing will check that dependencies are up to date, but it takes a non-trivial time to download and build
+    #- name: Install cargo-audit
+    #  run: cargo install cargo-audit
+    #- name: Audit
+    #  run: cargo audit
+
     - name: Integration Test
-      working-directory: ${{ github.workspace }}/test
+      working-directory: ${{ github.workspace }}
       run: ./test.py
