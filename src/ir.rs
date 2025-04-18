@@ -32,17 +32,27 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	fn new() -> Sequence { Sequence { vals: vec![] } }
+	fn new() -> Sequence {
+		Sequence { vals: vec![] }
+	}
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
-pub fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
+pub fn new_point(val: f64) -> Point3D {
+	Point3D::new(val, val, val)
+}
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
+	pub fields: HashMap<String, Node>,
 }
 impl Strip {
-	fn new() -> Strip { Strip { vals: vec![] } }
+	fn new() -> Strip {
+		Strip {
+			vals: vec![],
+			fields: HashMap::new(),
+		}
+	}
 }
 
 pub struct Ray {
@@ -148,7 +158,9 @@ impl Instance {
 		]
 	}
 
-	pub fn heterogenize(&self, v: &HomoPoint) -> Point3D { Point3D::new(v.x, v.y, v.z) }
+	pub fn heterogenize(&self, v: &HomoPoint) -> Point3D {
+		Point3D::new(v.x, v.y, v.z)
+	}
 }
 
 pub struct Mapping {
@@ -237,43 +249,19 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 		},
 		Yaml::Boolean(val) => Node::Bool(*val),
 		Yaml::Array(arr) => {
-			// Aggressively try to turn this sequence into a strip. Even if it isn't intended to be
-			// a strip, but it matches all the characteristics, we don't lose anything by
-			// normalizing it.
 			let mut nodes = vec![];
-			let mut points = vec![];
-			let mut can_strip = arr.len() >= 3;
 
 			for element in arr {
 				let node = parse(element, namespace, scene)?;
 				nodes.push(node);
-				if can_strip {
-					match as_3d(scene, &node) {
-						Ok(point) => {
-							points.push(point);
-						},
-						Err(_) => {
-							can_strip = false;
-						},
-					}
-				}
 			}
 
-			if can_strip {
-				let strip_at = scene.strips.len();
-				scene.strips.push(Strip::new());
-				for point in points {
-					scene.strips[strip_at].vals.push(point);
-				}
-				Node::Strip(strip_at)
-			} else {
-				let seq_at = scene.sequences.len();
-				scene.sequences.push(Sequence::new());
-				for node in nodes {
-					scene.sequences[seq_at].vals.push(node);
-				}
-				Node::Sequence(seq_at)
+			let seq_at = scene.sequences.len();
+			scene.sequences.push(Sequence::new());
+			for node in nodes {
+				scene.sequences[seq_at].vals.push(node);
 			}
+			Node::Sequence(seq_at)
 		},
 		Yaml::Hash(map) => {
 			let name_at = scene.mappings.len();
@@ -324,6 +312,42 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 					},
 				}
 				Node::Mapping(name_at)
+			} else if scene.mappings[name_at].fields.contains_key("strip") {
+				// This is not, in fact, a custom, it is a strip.
+				let mut strip = Strip::new();
+
+				for (key, value) in scene.mappings[name_at].fields.iter() {
+					if key == "strip" {
+						match value {
+							Node::Sequence(idx) => {
+								let vertices = &scene.sequences[*idx];
+								let len = vertices.vals.len();
+								if len < 3 {
+									return Err(format!(
+										"The field `strip` must have a sequence with at least 3 \
+										 vertices, but only {len} were found!"
+									));
+								}
+								for vertex in vertices.vals.iter() {
+									strip.vals.push(as_3d(scene, vertex)?);
+								}
+							},
+							_ => {
+								return Err("Field `data` must hold a sequence of at least 3 \
+								            points!"
+									.to_string());
+							},
+						}
+					} else {
+						strip.fields.insert(key.clone(), *value);
+					}
+				}
+				let strip_at = scene.strips.len();
+				scene.strips.push(strip);
+				// We can safely remove the old mapping since we parsed it directly (and therefore,
+				// it couldn't have saved and referenced elsewhere).
+				scene.mappings.pop();
+				Node::Strip(strip_at)
 			} else if scene.mappings[name_at].fields.contains_key("instance") {
 				// This is not, in fact, a custom, it is an instance. Convert it to such
 				let mut affected = Node::Bool(false); // guaranteed to be replaced since conditional forces it

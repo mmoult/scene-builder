@@ -27,8 +27,8 @@ Color is a notable optional field, which `strip` uses it for its faces (both fro
 
 ### Strip
 
-A `strip` (short for [Triangle strip](https://en.wikipedia.org/wiki/Triangle_strip)) is a sequence of *at least* three
-3-dimensional vertices. For example, the simplest is a triangle:
+A `strip` (short for [Triangle strip](https://en.wikipedia.org/wiki/Triangle_strip)) is a mapping with a field "strip",
+containing *at least* three 3-dimensional vertices. For example, the simplest is a triangle:
 
 ```
 strip:
@@ -95,10 +95,9 @@ Therefore, a `ray` is defined as a mapping with at least three mandatory fields:
 Here is an example of a simple ray:
 
 ```
-ray:
-  origin: [-4.3, 2.8, -9.6]
-  direction: [1, 1, 0]
-  extent: 10
+origin: [-4.3, 2.8, -9.6]
+direction: [1, 1, 0]
+extent: 10
 ```
 
 This defines a line segment from (-4.3, 2.8, -9.6) to (5.7, 12.8, -9.6).
@@ -130,7 +129,8 @@ movement, `1` is offset by one for that component, and `-1` is offset by negativ
 Below is an example instance:
 
 ```
-instance: strip:
+instance:
+  strip:
   - [0, 0, 0]
   - [1, 0, 0]
   - [0.5, 0, 0.5]
@@ -156,14 +156,13 @@ Here is a complex custom object, demonstrating several custom fields:
 aura: 3.2
 color: [255, 0, 0]
 data:
--
+- strip:
   - [1, -1, 2]
   - [0.5, 1, 1]
   - [-1, -0.5, 1.5]
--
-    origin: [1, 2, 3]
-    direction: [0, 0.5, 1.0]
-    extent: 6
+- origin: [1, 2, 3]
+  direction: [0, 0.5, 1.0]
+  extent: 6
 wireframe: true
 ```
 
@@ -174,9 +173,10 @@ matches the type expected at use). This is valuable for reducing redundancy.
 ```
 x_pos: 3.14159
 my-tri:
-- [x_pos, 0, 0]
-- [x_pos, 1.0, 2.0]
-- [-3, 0.5, 3.0]
+  strip:
+  - [x_pos, 0, 0]
+  - [x_pos, 1.0, 2.0]
+  - [-3, 0.5, 3.0]
 ```
 
 References are especially useful when using instances to transform the same object in several different ways:
@@ -234,6 +234,7 @@ When defining custom values, refrain from using the following names, which have 
 - `max`: custom object field expecting a 3-component float sequence specifying maxima
 - `min`: custom object field expecting a 3-component float sequence specifying minima
 - `origin`: ray field expecting a 3-component float vector value
+- `strip`: strip field expecting a list value of 3-component float vertices
 - `true`: boolean constant value
 
 ## World

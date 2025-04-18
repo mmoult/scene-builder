@@ -33,6 +33,7 @@ impl Palette {
 		}
 	}
 
+	/// Register a new color. Does not check if the color has already been defined. For that, use `update`.
 	fn register(&mut self, lines: &mut Vec<String>, color: &Point3D, idx: usize) {
 		lines.push("".to_string());
 		lines.push(format!("newmtl color{}", idx));
@@ -107,6 +108,7 @@ fn handle_node(
 	match node {
 		Node::Strip(idx) => {
 			let strip = &scene.strips[*idx];
+			palette.update(strip.fields.get("color"), lines, scene);
 			lines.push("".to_string());
 			lines.push(format!("o strip{}", *idx));
 			let mut inverse = false;

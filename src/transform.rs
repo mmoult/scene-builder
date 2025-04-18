@@ -88,19 +88,7 @@ impl Node {
 	}
 }
 
-pub fn transform(
-	scene: &mut Scene,
-	collapse: bool,
-	root: bool,
-	wrap: bool,
-	box_size: u8,
-	double: bool,
-) {
-	// activate box nodes in scene (or only ones with more than one child if collapse)
-	if collapse {
-		todo!();
-	}
-
+pub fn transform(scene: &mut Scene, root: bool, wrap: bool, box_size: u8, double: bool) {
 	if root {
 		let old_world = scene.world;
 		let should_box = match old_world {

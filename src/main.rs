@@ -22,7 +22,9 @@ impl OutputFormat {
 }
 
 impl clap::ValueEnum for OutputFormat {
-	fn value_variants<'a>() -> &'a [Self] { &[Self::Verify, Self::Bvh, Self::Obj] }
+	fn value_variants<'a>() -> &'a [Self] {
+		&[Self::Verify, Self::Bvh, Self::Obj]
+	}
 
 	fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
 		Some(clap::builder::PossibleValue::new(self.to_str()))
@@ -31,7 +33,9 @@ impl clap::ValueEnum for OutputFormat {
 
 use std::fmt;
 impl fmt::Display for OutputFormat {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.to_str()) }
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.to_str())
+	}
 }
 
 /// Compile scene yaml files into BVH or OBJ format
@@ -41,10 +45,6 @@ struct Args {
 	/// The maximum number of children that a single box node can have. 0 indicates unbounded size.
 	#[arg(short, long, default_value_t = 0)]
 	box_size: u8,
-
-	/// Collapses boxes with only one child. Occurs before other box operations (double and root).
-	#[arg(short, long, action)]
-	collapse: bool,
 
 	/// Each box holding multiple nodes is converted into a box holding single-child boxes. In
 	/// other words, transforms the scene such that every box either holds one child of any type
@@ -136,14 +136,7 @@ fn main() -> Result<(), String> {
 		}
 	} else {
 		// Handle all the box-related transformations
-		transform::transform(
-			&mut scene,
-			args.collapse,
-			args.root,
-			args.wrap,
-			args.box_size,
-			args.double,
-		);
+		transform::transform(&mut scene, args.root, args.wrap, args.box_size, args.double);
 	}
 
 	let lines = match out_format {
