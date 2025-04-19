@@ -59,10 +59,11 @@ pub struct Ray {
 	pub origin: Point3D,
 	pub direction: Point3D,
 	pub extent: f64,
+	pub min: f64,
 	pub fields: HashMap<String, Node>,
 }
 
-pub type TransformMat = nalgebra::Matrix4x3<f64>;
+pub type TransformMat = nalgebra::Matrix3x4<f64>;
 pub type SquareMat = nalgebra::Matrix4<f64>;
 pub type HomoPoint = nalgebra::Vector4<f64>;
 
@@ -93,21 +94,20 @@ impl Instance {
 		let ry = matrix![
 			rotate_rad.y.cos(), 0.0, -rotate_rad.y.sin();
 			0.0, 1.0, 0.0;
-			rotate_rad.y.sin(), 0.0, rotate_rad.x.cos();
+			rotate_rad.y.sin(), 0.0, rotate_rad.y.cos();
 		];
 		let rz = matrix![
-			rotate_rad.y.cos(), rotate_rad.y.sin(), 0.0;
-			-rotate_rad.y.sin(), rotate_rad.x.cos(), 0.0;
+			rotate_rad.z.cos(), rotate_rad.z.sin(), 0.0;
+			-rotate_rad.z.sin(), rotate_rad.z.cos(), 0.0;
 			0.0, 0.0, 1.0;
 		];
 
 		let m = scale_mat * rx * ry * rz;
 		// contruct a homogenous matrix to allow for translation
 		matrix![
-			m[(0, 0)], m[(0, 1)], m[(0, 2)];
-			m[(1, 0)], m[(1, 1)], m[(1, 2)];
-			m[(2, 0)], m[(2, 1)], m[(2, 2)];
-			self.translate.x, self.translate.y, self.translate.z;
+			m[(0, 0)], m[(0, 1)], m[(0, 2)], self.translate.x;
+			m[(1, 0)], m[(1, 1)], m[(1, 2)], self.translate.y;
+			m[(2, 0)], m[(2, 1)], m[(2, 2)], self.translate.z;
 		]
 	}
 
@@ -131,36 +131,35 @@ impl Instance {
 		let ry = matrix![
 			rotate_rad.y.cos(), 0.0, -rotate_rad.y.sin();
 			0.0, 1.0, 0.0;
-			rotate_rad.y.sin(), 0.0, rotate_rad.x.cos();
+			rotate_rad.y.sin(), 0.0, rotate_rad.y.cos();
 		];
 		let rz = matrix![
-			rotate_rad.y.cos(), rotate_rad.y.sin(), 0.0;
-			-rotate_rad.y.sin(), rotate_rad.x.cos(), 0.0;
+			rotate_rad.z.cos(), rotate_rad.z.sin(), 0.0;
+			-rotate_rad.z.sin(), rotate_rad.z.cos(), 0.0;
 			0.0, 0.0, 1.0;
 		];
 
 		let m = rz * ry * rx * scale_mat;
 		// contruct a homogenous matrix to allow for translation
 		matrix![
-			m[(0, 0)], m[(0, 1)], m[(0, 2)];
-			m[(1, 0)], m[(1, 1)], m[(1, 2)];
-			m[(2, 0)], m[(2, 1)], m[(2, 2)];
-			self.translate.x, self.translate.y, self.translate.z;
+			m[(0, 0)], m[(0, 1)], m[(0, 2)], -self.translate.x;
+			m[(1, 0)], m[(1, 1)], m[(1, 2)], -self.translate.y;
+			m[(2, 0)], m[(2, 1)], m[(2, 2)], -self.translate.z;
 		]
 	}
+}
 
-	pub fn homogenize(&self, m: &TransformMat) -> SquareMat {
-		matrix![
-			m[(0, 0)], m[(0, 1)], m[(0, 2)], 0.0;
-			m[(1, 0)], m[(1, 1)], m[(1, 2)], 0.0;
-			m[(2, 0)], m[(2, 1)], m[(2, 2)], 0.0;
-			m[(3, 0)], m[(3, 1)], m[(3, 2)], 1.0;
-		]
-	}
+pub fn homogenize(m: &TransformMat) -> SquareMat {
+	matrix![
+		m[(0, 0)], m[(0, 1)], m[(0, 2)], m[(0, 3)];
+		m[(1, 0)], m[(1, 1)], m[(1, 2)], m[(1, 3)];
+		m[(2, 0)], m[(2, 1)], m[(2, 2)], m[(2, 3)];
+		0.0, 0.0, 0.0, 1.0;
+	]
+}
 
-	pub fn heterogenize(&self, v: &HomoPoint) -> Point3D {
-		Point3D::new(v.x, v.y, v.z)
-	}
+pub fn homogenize_pt(p: &Point3D) -> HomoPoint {
+	HomoPoint::new(p.x, p.y, p.z, 1.0)
 }
 
 pub struct Mapping {
@@ -403,12 +402,13 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				Node::Instance(scene_at)
 			} else if scene.mappings[name_at].fields.contains_key("origin")
 				&& scene.mappings[name_at].fields.contains_key("direction")
-				&& scene.mappings[name_at].fields.contains_key("extent")
+				&& scene.mappings[name_at].fields.contains_key("max")
 			{
 				// This is actually a ray
 				let mut origin = new_point(1.0);
 				let mut direction = new_point(1.0);
 				let mut extent = 0.0;
+				let mut min = 0.0;
 				let mut fields = HashMap::new();
 
 				for (key, value) in scene.mappings[name_at].fields.iter() {
@@ -416,13 +416,22 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 						origin = as_3d(scene, value)?;
 					} else if key == "direction" {
 						direction = as_3d(scene, value)?;
-					} else if key == "extent" {
+					} else if key == "max" {
 						match value {
 							Node::Number(val) => {
 								extent = *val;
 							},
 							_ => {
-								return Err("Field `extent` in ray must be a float!".to_string());
+								return Err("Field `max` in ray must be a float!".to_string());
+							},
+						}
+					} else if key == "min" {
+						match value {
+							Node::Number(val) => {
+								min = *val;
+							},
+							_ => {
+								return Err("Field `min` in ray must be a float!".to_string());
 							},
 						}
 					} else {
@@ -433,6 +442,7 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 					origin,
 					direction,
 					extent,
+					min,
 					fields,
 				};
 				let ray_at = scene.rays.len();

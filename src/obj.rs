@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::ir::{Node, Point3D, Scene, new_point};
+use crate::ir::{Node, Point3D, Scene, homogenize, homogenize_pt, new_point};
 use crate::report::warn;
 use nalgebra::matrix;
 
@@ -130,21 +130,25 @@ fn handle_node(
 		Node::Ray(idx) => {
 			let ray = &scene.rays[*idx];
 			palette.update(ray.fields.get("color"), lines, scene);
-			let origin = transform * ray.origin;
-			let direction = transform * (ray.direction * ray.extent);
-			let end = origin + direction;
+			let min = new_point(ray.min);
+			let extent = new_point(ray.extent);
+			let start = ray.origin + ray.direction.component_mul(&min);
+			let end = ray.origin + ray.direction.component_mul(&extent);
+
+			let origin = transform * homogenize_pt(&start);
+			let dest = transform * homogenize_pt(&end);
 			lines.push("".to_string());
 			lines.push(format!("o ray{}", *idx));
 			lines.push(format!("v {} {} {}", origin.x, origin.y, origin.z));
-			lines.push(format!("v {} {} {}", end.x, end.y, end.z));
+			lines.push(format!("v {} {} {}", dest.x, dest.y, dest.z));
 			lines.push("l -2 -1".to_string()); // line from penultimate vertex to ultimate
 		},
 		Node::Instance(idx) => {
 			let instance = &scene.instances[*idx];
 			palette.update(instance.fields.get("color"), lines, scene);
 			// Instance doesn't push any lines, but it does update the transformation matrix
-			let homogenous = &instance.homogenize(transform);
-			let mult = homogenous * instance.obj_to_world();
+			let homogenous = &homogenize(transform);
+			let mult = instance.obj_to_world() * homogenous;
 			handle_node(&instance.affected, lines, scene, palette, &mult);
 		},
 		Node::Mapping(idx) => {
@@ -200,10 +204,9 @@ pub fn to_obj(scene: &Scene) -> Vec<String> {
 		"# Recommended OBJ viewer: https://3dviewer.net/".to_string(),
 	];
 	let transform = matrix![
-		1.0, 0.0, 0.0;
-		0.0, 1.0, 0.0;
-		0.0, 0.0, 1.0;
-		0.0, 0.0, 0.0;
+		1.0, 0.0, 0.0, 0.0;
+		0.0, 1.0, 0.0, 0.0;
+		0.0, 0.0, 1.0, 0.0;
 	];
 	let mut palette = Palette::new(&mut res, scene.sequences.len());
 	handle_node(&scene.world, &mut res, scene, &mut palette, &transform);

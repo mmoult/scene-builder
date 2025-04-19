@@ -1,0 +1,28 @@
+ray:
+  origin: [0.0, 0.0, 0.0]
+  direction: [0.2, 0.6, 0.0]
+  max: 10.0
+
+hexagonal_dome:
+  color: [0, 0, 255]
+  center: [0, 0, 2]
+  data:
+  - strip:
+    - [2, -0.75, 0]
+    - [2, 0.75, 0]
+    - center
+    - [0.75, 2, 0]
+    - [-0.75, 2, 0]
+    - center
+    - [-2, 0.75, 0]
+    - [-2, -0.75, 0]
+    - center
+    - [-0.75, -2, 0]
+    - [0.75, -2, 0]
+    - center
+    - [2, -0.75, 0]
+
+data:
+- instance: hexagonal_dome
+  translate: [0, 0, -1]
+- ray

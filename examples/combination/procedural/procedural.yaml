@@ -1,17 +1,17 @@
 ray_dir: [0.0, 0.0, -1.0]
-ray_extent: 1.0
+ray_max: 1.0
 # nice orange to stand out against other geometry
 ray_color: [252, 143, 35]
 
 ray0:
   origin: [0.5, 0.5, 0.5]
   direction: ray_dir
-  extent: ray_extent
+  max: ray_max
   color: ray_color
 ray1:
   origin: [1.5, 0.5, 0.5]
   direction: ray_dir
-  extent: ray_extent
+  max: ray_max
   color: ray_color
 
 data:

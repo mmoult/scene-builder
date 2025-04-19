@@ -1,0 +1,6 @@
+data:
+- instance:
+    origin: [0.0, 1.0, 2.0]
+    direction: [-1.0, -0.5, 1.0]
+    max: 2
+  translate: [1.5, 1.0, 0.5]

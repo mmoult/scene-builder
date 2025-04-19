@@ -91,19 +91,21 @@ In purely mathematical terms, a ray is geometry defined by an origin point and a
 language is used within the context of ray tracing, each `ray` has an extent, which may alternatively be thought of as a
 parametric domain maximum. (Technically, the extent makes a `ray` into a line segment.)
 
-Therefore, a `ray` is defined as a mapping with at least three mandatory fields: `origin`, `direction`, and `extent`.
+Therefore, a `ray` is defined as a mapping with at least three mandatory fields: `origin`, `direction`, and `max`.
 Here is an example of a simple ray:
 
 ```
 origin: [-4.3, 2.8, -9.6]
 direction: [1, 1, 0]
-extent: 10
+max: 10
 ```
 
 This defines a line segment from (-4.3, 2.8, -9.6) to (5.7, 12.8, -9.6).
 
-If the direction is normalized, then the length of the line segment the `ray` forms is equal to its `extent`. However,
+If the direction is normalized, then the length of the line segment the `ray` forms is equal to its `max`. However,
 there is no requirement in the language for the direction to be normalized (that choice is left to the user).
+
+It is also worth mentioning the optional field `min`, which serves as an opposite bound to `max`.
 
 ### Instance
 
@@ -162,7 +164,7 @@ data:
   - [-1, -0.5, 1.5]
 - origin: [1, 2, 3]
   direction: [0, 0.5, 1.0]
-  extent: 6
+  max: 6
 wireframe: true
 ```
 
@@ -226,13 +228,14 @@ When defining custom values, refrain from using the following names, which have 
            provided. If none found, black is used (0, 0, 0)
 - `data`: used to create a custom object
 - `direction`: ray field expecting a 3-component float vector value
-- `extent`: ray field expecting a float length value
 - `false`: boolean constant value
 - `fill`: custom object field expecting a boolean value whether the box should be opaque (true) or wireframe (false).
           Defaults to false if not provided.
 - `instance`: instance field expecting a reference or literal object to transform
-- `max`: custom object field expecting a 3-component float sequence specifying maxima
-- `min`: custom object field expecting a 3-component float sequence specifying minima
+- `max`: ray field expecting a float value specifying maximum direction from origin OR
+         custom object field expecting a 3-component float sequence specifying maxima
+- `min`: ray field expecting a float value specifying minimum direction from origin OR
+         custom object field expecting a 3-component float sequence specifying minima
 - `origin`: ray field expecting a 3-component float vector value
 - `strip`: strip field expecting a list value of 3-component float vertices
 - `true`: boolean constant value

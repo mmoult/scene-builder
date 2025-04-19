@@ -1,4 +1,4 @@
 data:
 - origin: [0, 0, 0]
   direction: [-1, 1, 0.5]
-  extent: 2
+  max: 2

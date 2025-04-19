@@ -1,4 +1,4 @@
-use crate::ir::{Node, Point3D, Scene, as_3d, new_point};
+use crate::ir::{Node, Point3D, Scene, as_3d, homogenize_pt, new_point};
 
 impl Node {
 	pub fn set_bounds(&self, scene: &mut Scene) -> (Point3D, Point3D) {
@@ -17,17 +17,20 @@ impl Node {
 			},
 			Node::Ray(idx) => {
 				let ray = &scene.rays[*idx];
+				let min = new_point(ray.min);
 				let extent = new_point(ray.extent);
+				let start = ray.origin + ray.direction.component_mul(&min);
 				let end = ray.origin + ray.direction.component_mul(&extent);
+
 				let mins = Point3D::new(
-					f64::min(ray.origin.x, end.x),
-					f64::min(ray.origin.y, end.y),
-					f64::min(ray.origin.z, end.z),
+					f64::min(start.x, end.x),
+					f64::min(start.y, end.y),
+					f64::min(start.z, end.z),
 				);
 				let maxs = Point3D::new(
-					f64::max(ray.origin.x, end.x),
-					f64::max(ray.origin.y, end.y),
-					f64::max(ray.origin.z, end.z),
+					f64::max(start.x, end.x),
+					f64::max(start.y, end.y),
+					f64::max(start.z, end.z),
 				);
 				(mins, maxs)
 			},
@@ -37,9 +40,9 @@ impl Node {
 				let inst = &scene.instances[*idx];
 				let transform = inst.obj_to_world();
 				// Apply the transformation on the mins and maxs to get the true values
-				let nmin = transform * mins;
-				let nmax = transform * maxs;
-				(inst.heterogenize(&nmin), inst.heterogenize(&nmax))
+				let nmin = transform * homogenize_pt(&mins);
+				let nmax = transform * homogenize_pt(&maxs);
+				(nmin, nmax)
 			},
 			Node::Mapping(idx) => {
 				// let mut map = &scene.instances[*idx];
