@@ -1,48 +1,47 @@
-use crate::ir::{Node, Point3D, Scene, as_3d, homogenize_pt, new_point};
+use nalgebra::matrix;
+
+use crate::ir::{Node, Point3D, Scene, TransformMat, as_3d, homogenize, homogenize_pt, new_point};
 
 impl Node {
-	pub fn set_bounds(&self, scene: &mut Scene) -> (Point3D, Point3D) {
+	pub fn set_bounds(
+		&self,
+		scene: &mut Scene,
+		min: &mut Point3D,
+		max: &mut Point3D,
+		transform: &TransformMat,
+	) {
 		match self {
 			Node::Strip(idx) => {
 				let strip = &scene.strips[*idx];
-				let mut mins = new_point(f64::NAN);
-				let mut maxs = new_point(f64::NAN);
 				for vert in strip.vals.iter() {
+					let point = transform * homogenize_pt(vert);
 					for i in 0..3 {
-						mins[i] = f64::min(mins[i], vert[i]);
-						maxs[i] = f64::max(maxs[i], vert[i]);
+						min[i] = f64::min(min[i], point[i]);
+						max[i] = f64::max(max[i], point[i]);
 					}
 				}
-				(mins, maxs)
 			},
 			Node::Ray(idx) => {
 				let ray = &scene.rays[*idx];
-				let min = new_point(ray.min);
+				let rmin = new_point(ray.min);
 				let extent = new_point(ray.extent);
-				let start = ray.origin + ray.direction.component_mul(&min);
+				let start = ray.origin + ray.direction.component_mul(&rmin);
 				let end = ray.origin + ray.direction.component_mul(&extent);
 
-				let mins = Point3D::new(
-					f64::min(start.x, end.x),
-					f64::min(start.y, end.y),
-					f64::min(start.z, end.z),
-				);
-				let maxs = Point3D::new(
-					f64::max(start.x, end.x),
-					f64::max(start.y, end.y),
-					f64::max(start.z, end.z),
-				);
-				(mins, maxs)
+				let origin = transform * homogenize_pt(&start);
+				let dest = transform * homogenize_pt(&end);
+
+				for i in 0..3 {
+					min[i] = f64::min(min[i], f64::min(origin[i], dest[i]));
+					max[i] = f64::max(max[i], f64::max(origin[i], dest[i]));
+				}
 			},
 			Node::Instance(idx) => {
+				let instance = &scene.instances[*idx];
+				let homogenous = &homogenize(transform);
+				let mult = instance.obj_to_world() * homogenous;
 				let affected = scene.instances[*idx].affected;
-				let (mins, maxs) = affected.set_bounds(scene);
-				let inst = &scene.instances[*idx];
-				let transform = inst.obj_to_world();
-				// Apply the transformation on the mins and maxs to get the true values
-				let nmin = transform * homogenize_pt(&mins);
-				let nmax = transform * homogenize_pt(&maxs);
-				(nmin, nmax)
+				affected.set_bounds(scene, min, max, &mult);
 			},
 			Node::Mapping(idx) => {
 				// let mut map = &scene.instances[*idx];
@@ -72,21 +71,25 @@ impl Node {
 				if let Some(Node::Sequence(idx)) = map.fields.get("data") {
 					let seq = &scene.sequences[*idx];
 					for element in seq.vals.clone() {
-						let (emin, emax) = element.set_bounds(scene);
-						for i in 0..3 {
-							mins[i] = f64::min(mins[i], emin[i]);
-							maxs[i] = f64::max(maxs[i], emax[i]);
-						}
+						element.set_bounds(scene, &mut mins, &mut maxs, transform);
 					}
 				}
 
+				// If this mapping has dimensions, then it qualifies as a box
+				// Checking x for NaN is the same as checking any for NaN. If any max or min is set, then all must be
+				// set to some initial value. In other words, we cannot selectively set some channels but not all.
 				if !mins.x.is_nan() {
 					let map = &mut scene.mappings[*idx];
 					map.as_box(&mins, &maxs);
+
+					// Update the parent box from this's dimensions
+					for i in 0..3 {
+						min[i] = f64::min(mins[i], min[i]);
+						max[i] = f64::max(maxs[i], max[i]);
+					}
 				}
-				(mins, maxs)
 			},
-			_ => (new_point(f64::NAN), new_point(f64::NAN)),
+			_ => {},
 		}
 	}
 }
@@ -129,6 +132,13 @@ pub fn transform(scene: &mut Scene, root: bool, wrap: bool, box_size: u8, double
 	}
 
 	// The last transformation is to add box data to mappings where necessary
+	let mut mins = new_point(f64::NAN);
+	let mut maxs = new_point(f64::NAN);
+	let transform = matrix![
+		1.0, 0.0, 0.0, 0.0;
+		0.0, 1.0, 0.0, 0.0;
+		0.0, 0.0, 1.0, 0.0;
+	];
 	let world = scene.world;
-	world.set_bounds(scene);
+	world.set_bounds(scene, &mut mins, &mut maxs, &transform);
 }

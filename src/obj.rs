@@ -114,7 +114,8 @@ fn handle_node(
 			let mut inverse = false;
 			let mut count = 0;
 			for vert in strip.vals.iter() {
-				lines.push(format!("v {} {} {}", vert.x, vert.y, vert.z));
+				let point = transform * homogenize_pt(vert);
+				lines.push(format!("v {} {} {}", point.x, point.y, point.z));
 				if count >= 2 {
 					if inverse {
 						lines.push("f -2 -3 -1".to_string());
@@ -158,14 +159,17 @@ fn handle_node(
 				// create a box if min and max are present
 				lines.push("".to_string());
 				lines.push(format!("o box{}", *idx));
-				lines.push(format!("v {} {} {}", map.min.x, map.min.y, map.min.z));
-				lines.push(format!("v {} {} {}", map.min.x, map.min.y, map.max.z));
-				lines.push(format!("v {} {} {}", map.min.x, map.max.y, map.min.z));
-				lines.push(format!("v {} {} {}", map.min.x, map.max.y, map.max.z));
-				lines.push(format!("v {} {} {}", map.max.x, map.min.y, map.min.z));
-				lines.push(format!("v {} {} {}", map.max.x, map.min.y, map.max.z));
-				lines.push(format!("v {} {} {}", map.max.x, map.max.y, map.min.z));
-				lines.push(format!("v {} {} {}", map.max.x, map.max.y, map.max.z));
+
+				let mins = transform * homogenize_pt(&map.min);
+				let maxs = transform * homogenize_pt(&map.max);
+				lines.push(format!("v {} {} {}", mins.x, mins.y, mins.z));
+				lines.push(format!("v {} {} {}", mins.x, mins.y, maxs.z));
+				lines.push(format!("v {} {} {}", mins.x, maxs.y, mins.z));
+				lines.push(format!("v {} {} {}", mins.x, maxs.y, maxs.z));
+				lines.push(format!("v {} {} {}", maxs.x, mins.y, mins.z));
+				lines.push(format!("v {} {} {}", maxs.x, mins.y, maxs.z));
+				lines.push(format!("v {} {} {}", maxs.x, maxs.y, mins.z));
+				lines.push(format!("v {} {} {}", maxs.x, maxs.y, maxs.z));
 
 				let mut fill = false;
 				if let Some(Node::Bool(val)) = map.fields.get("fill") {
