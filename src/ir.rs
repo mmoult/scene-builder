@@ -32,15 +32,11 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	fn new() -> Sequence {
-		Sequence { vals: vec![] }
-	}
+	fn new() -> Sequence { Sequence { vals: vec![] } }
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
-pub fn new_point(val: f64) -> Point3D {
-	Point3D::new(val, val, val)
-}
+pub fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
@@ -158,9 +154,7 @@ pub fn homogenize(m: &TransformMat) -> SquareMat {
 	]
 }
 
-pub fn homogenize_pt(p: &Point3D) -> HomoPoint {
-	HomoPoint::new(p.x, p.y, p.z, 1.0)
-}
+pub fn homogenize_pt(p: &Point3D) -> HomoPoint { HomoPoint::new(p.x, p.y, p.z, 1.0) }
 
 pub struct Mapping {
 	pub fields: HashMap<String, Node>,

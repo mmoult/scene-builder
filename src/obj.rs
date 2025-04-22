@@ -25,15 +25,15 @@ impl Palette {
 		self.current = color;
 	}
 
-	/// Reuse the given color if it isn't current. Useful for resetting color after handling a child
-	/// node
+	/// Reuse the given color if not current. Useful for resetting color after handling a child node
 	pub fn reset(&mut self, lines: &mut Vec<String>, color: usize) {
 		if self.current != color {
 			self.reuse(lines, color);
 		}
 	}
 
-	/// Register a new color. Does not check if the color has already been defined. For that, use `update`.
+	/// Register a unique color. Does not check if the color has already been defined. For that, use
+	/// function `update` instead.
 	fn register(&mut self, lines: &mut Vec<String>, color: &Point3D, idx: usize) {
 		lines.push("".to_string());
 		lines.push(format!("newmtl color{}", idx));

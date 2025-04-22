@@ -76,8 +76,9 @@ impl Node {
 				}
 
 				// If this mapping has dimensions, then it qualifies as a box
-				// Checking x for NaN is the same as checking any for NaN. If any max or min is set, then all must be
-				// set to some initial value. In other words, we cannot selectively set some channels but not all.
+				// Checking x for NaN is the same as checking any for NaN. If any max or min is set,
+				// then all must be set to some initial value. In other words, we cannot selectively
+				// set some channels but not all.
 				if !mins.x.is_nan() {
 					let map = &mut scene.mappings[*idx];
 					map.as_box(&mins, &maxs);
