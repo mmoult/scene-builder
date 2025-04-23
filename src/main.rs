@@ -132,7 +132,14 @@ fn main() -> Result<(), String> {
 		}
 	} else {
 		// Handle all the box-related transformations
-		transform::transform(&mut scene, args.root, args.wrap, args.box_size, args.double);
+		transform::transform(
+			&mut scene,
+			args.root,
+			args.wrap,
+			args.box_size,
+			args.double,
+			out_format == OutputFormat::Bvh,
+		);
 	}
 
 	let lines = match out_format {

@@ -25,4 +25,4 @@ data:
 - min: [1.0, 0.0, 0.0]
   max: [2.0, 1.0, 0.0]
   color: [0, 0, 255]
-  fill: true
+  opaque: true

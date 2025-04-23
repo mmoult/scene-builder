@@ -172,7 +172,7 @@ fn handle_node(
 				lines.push(format!("v {} {} {}", maxs.x, maxs.y, maxs.z));
 
 				let mut fill = false;
-				if let Some(Node::Bool(val)) = map.fields.get("fill") {
+				if let Some(Node::Bool(val)) = map.fields.get("opaque") {
 					fill = *val;
 				}
 

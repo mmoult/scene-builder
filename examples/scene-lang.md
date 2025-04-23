@@ -229,13 +229,13 @@ When defining custom values, refrain from using the following names, which have 
 - `data`: used to create a custom object
 - `direction`: ray field expecting a 3-component float vector value
 - `false`: boolean constant value
-- `fill`: custom object field expecting a boolean value whether the box should be opaque (true) or wireframe (false).
-          Defaults to false if not provided.
 - `instance`: instance field expecting a reference or literal object to transform
 - `max`: ray field expecting a float value specifying maximum direction from origin OR
          custom object field expecting a 3-component float sequence specifying maxima
 - `min`: ray field expecting a float value specifying minimum direction from origin OR
          custom object field expecting a 3-component float sequence specifying minima
+- `opaque`: custom object field expecting a boolean value whether the box should be filled (true) or wireframe (false).
+            Defaults to false if not provided.
 - `origin`: ray field expecting a 3-component float vector value
 - `strip`: strip field expecting a list value of 3-component float vertices
 - `true`: boolean constant value

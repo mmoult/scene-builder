@@ -44,7 +44,7 @@ def check(root, scene, out, format):
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if res.returncode != 0 or not eq_file(res.stdout, out):
         fails += 1
-        print("X", os.path.relpath(scene, example_path))
+        print("X", os.path.relpath(out, example_path))
 
 for (root, dirs, files) in os.walk(example_path, topdown=True):
     scene = None
@@ -63,7 +63,7 @@ for (root, dirs, files) in os.walk(example_path, topdown=True):
         if obj_out is not None:
             check(root, scene, obj_out, "obj")
         if bvh_json_out is not None:
-            check(root, scene, obj_out, "bvh")
+            check(root, scene, bvh_json_out, "bvh")
 
 # Print results
 if total == 0:

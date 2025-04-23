@@ -107,7 +107,6 @@ impl Instance {
 		]
 	}
 
-	#[allow(unused)]
 	pub fn world_to_obj(&self) -> TransformMat {
 		let scale_mat = matrix![
 			1.0 / self.scale.x, 0.0, 0.0;

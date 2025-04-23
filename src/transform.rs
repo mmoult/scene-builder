@@ -95,7 +95,14 @@ impl Node {
 	}
 }
 
-pub fn transform(scene: &mut Scene, root: bool, wrap: bool, box_size: u8, double: bool) {
+pub fn transform(
+	scene: &mut Scene,
+	root: bool,
+	wrap: bool,
+	box_size: u8,
+	double: bool,
+	triangle: bool,
+) {
 	if root {
 		let old_world = scene.world;
 		let should_box = match old_world {
@@ -130,6 +137,10 @@ pub fn transform(scene: &mut Scene, root: bool, wrap: bool, box_size: u8, double
 
 	if double {
 		todo!();
+	}
+
+	if triangle {
+		// todo!();
 	}
 
 	// The last transformation is to add box data to mappings where necessary
