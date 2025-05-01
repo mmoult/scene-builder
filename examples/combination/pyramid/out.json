@@ -1,0 +1,93 @@
+{
+	"tlas" : [ 0, 0 ],
+	"box_nodes" : [
+		{
+			"min_bounds" : [ -1.4088320528055174, 0, -1.4088320528055174 ],
+			"max_bounds" : [ 5, 5, 5 ],
+			"child_nodes" : [
+				[ 1, 0 ]
+			]
+		},
+		{
+			"min_bounds" : [ -1, 0, -1 ],
+			"max_bounds" : [ 1, 1, 1 ],
+			"child_nodes" : [
+				[ 2, 1 ],
+				[ 2, 2 ],
+				[ 2, 3 ],
+				[ 2, 4 ],
+				[ 2, 0 ]
+			]
+		}
+	],
+	"instance_nodes" : [
+		{
+			"world_to_object" : [
+				[ 0.6427876096865394, 0, -0.766044443118978 ],
+				[ 0, 1, 0 ],
+				[ 0.766044443118978, 0, 0.6427876096865394 ],
+				[ -0, -0, -0 ]
+			],
+			"child_node" : [ 0, 1 ],
+			"id" : 0,
+			"custom_index" : 0,
+			"mask" : 255,
+			"sbt_record_offset" : 0
+		}
+	],
+	"triangle_nodes" : [
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 0,
+			"opaque" : true,
+			"vertices" : [
+				[ 1, 0, 1 ],
+				[ 1, 0, -1 ],
+				[ -1, 0, 1 ],
+				[ -1, 0, -1 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 1,
+			"opaque" : true,
+			"vertices" : [
+				[ 1, 0, 1 ],
+				[ -1, 0, 1 ],
+				[ 0, 1, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 2,
+			"opaque" : true,
+			"vertices" : [
+				[ -1, 0, 1 ],
+				[ -1, 0, -1 ],
+				[ 0, 1, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 3,
+			"opaque" : true,
+			"vertices" : [
+				[ -1, 0, -1 ],
+				[ 1, 0, -1 ],
+				[ 0, 1, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 4,
+			"opaque" : true,
+			"vertices" : [
+				[ 1, 0, -1 ],
+				[ 1, 0, 1 ],
+				[ 0, 1, 0 ]
+			]
+		}
+	],
+	"procedural_nodes" : [
+	]
+}

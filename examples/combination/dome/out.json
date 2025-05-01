@@ -1,0 +1,58 @@
+{
+	"tlas" : [ 0, 0 ],
+	"box_nodes" : [
+		{
+			"min_bounds" : [ -2, -2, -1 ],
+			"max_bounds" : [ 2, 6, 1 ],
+			"child_nodes" : [
+				[ 1, 0 ]
+			]
+		},
+		{
+			"min_bounds" : [ -2, -2, 0 ],
+			"max_bounds" : [ 2, 2, 2 ],
+			"child_nodes" : [
+				[ 2, 0 ]
+			]
+		}
+	],
+	"instance_nodes" : [
+		{
+			"world_to_object" : [
+				[ 1, 0, 0 ],
+				[ 0, 1, 0 ],
+				[ 0, 0, 1 ],
+				[ -0, -0, 1 ]
+			],
+			"child_node" : [ 0, 1 ],
+			"id" : 0,
+			"custom_index" : 0,
+			"mask" : 255,
+			"sbt_record_offset" : 0
+		}
+	],
+	"triangle_nodes" : [
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 0,
+			"opaque" : true,
+			"vertices" : [
+				[ 2, -0.75, 0 ],
+				[ 2, 0.75, 0 ],
+				[ 0, 0, 2 ],
+				[ 0.75, 2, 0 ],
+				[ -0.75, 2, 0 ],
+				[ 0, 0, 2 ],
+				[ -2, 0.75, 0 ],
+				[ -2, -0.75, 0 ],
+				[ 0, 0, 2 ],
+				[ -0.75, -2, 0 ],
+				[ 0.75, -2, 0 ],
+				[ 0, 0, 2 ],
+				[ 2, -0.75, 0 ]
+			]
+		}
+	],
+	"procedural_nodes" : [
+	]
+}

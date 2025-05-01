@@ -6,10 +6,26 @@ enum MapType {
 	Procedural(usize),
 }
 
-fn to_major_minor(node: &Node, mappings: &[MapType]) -> Option<(usize, usize)> {
+fn to_major_minor(
+	node: &Node,
+	mappings: &[MapType],
+	disabled_insts: &[usize],
+) -> Option<(usize, usize)> {
 	match node {
 		Node::Strip(idx) => Some((2, *idx)),
-		Node::Instance(idx) => Some((1, *idx)),
+		Node::Instance(idx) => {
+			let mut delta = 0;
+			for disabled in disabled_insts {
+				match (*disabled).cmp(idx) {
+					std::cmp::Ordering::Less => {
+						delta += 1;
+					},
+					std::cmp::Ordering::Equal => return None,
+					std::cmp::Ordering::Greater => break,
+				}
+			}
+			Some((1, *idx - delta))
+		},
 		Node::Mapping(idx) => match mappings[*idx] {
 			MapType::Unused => None,
 			MapType::Box(i) => Some((0, i)),
@@ -20,63 +36,10 @@ fn to_major_minor(node: &Node, mappings: &[MapType]) -> Option<(usize, usize)> {
 }
 
 pub fn to_bvh(scene: &Scene) -> Vec<String> {
-	// This is how the BVH output looks:
-	// {
-	// "tlas" : [ major, minor ],
-	// "box_nodes" : [
-	// {
-	// "min_bounds" : [ <float>, <float>, <float> ],
-	// "max_bounds" : [ <float>, <float>, <float> ],
-	// "child_nodes" : [
-	// [ major, minor ],
-	// <...>
-	// ]
-	// },
-	// <...>
-	// ],
-	// "instance_nodes" : [
-	// {
-	// "world_to_obj" : [
-	// [ <float>, <float>, <float> ],
-	// [ <float>, <float>, <float> ],
-	// [ <float>, <float>, <float> ],
-	// [ <float>, <float>, <float> ]
-	// ],
-	// "child_node" : [ major, minor ],
-	// "id" : <uint>,
-	// "custom_index" : <uint>,
-	// "mask" : <uint>,
-	// "sbt_record_offset" : <uint>
-	// },
-	// <...>
-	// ],
-	// "triangle_nodes" : [
-	// {
-	// "geometry_index" : <uint>,
-	// "primitive_index" : <uint>,
-	// "opaque" : <bool>,
-	// "vertices" : [
-	// [ <float>, <float>, <float> ],
-	// [ <float>, <float>, <float> ],
-	// [ <float>, <float>, <float> ]
-	// ]
-	// },
-	// <...>
-	// ],
-	// "procedural_nodes" : [
-	// {
-	// "min_bounds" : [ <float>, <float>, <float> ],
-	// "max_bounds" : [ <float>, <float>, <float> ],
-	// "opaque" : <bool>,
-	// "geometry_index" : <uint>,
-	// "primitive_index" : <uint>
-	// },
-	// <...>
-	// ]
-	// }
+	// We need to check some conditions about mappings and instances before we can start printing
 
-	// First, go through all mappings and determine how to handle. Each can be one of: ignored, box,
-	// procedural
+	// 1) Determine how to handle each mapping. Each can be one of: ignored, box, procedural. We
+	//    must know the category each fits in before we start printing any nodes.
 	let mut mappings = vec![];
 
 	let mut box_num = 0;
@@ -101,9 +64,18 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 		}
 	}
 
+	// 2) Rays are removed in the BVH target, so we must delete any instance nodes which have ray
+	//    children (since they cannot exist independently).
+	let mut disabled_insts = vec![];
+	for (inst_idx, instance) in scene.instances.iter().enumerate() {
+		if let Node::Ray(_) = instance.affected {
+			disabled_insts.push(inst_idx);
+		}
+	}
+
 	// Finally, print all nodes, using the numbering determined before to convert all references
 	let mut res = vec!["{".to_string()];
-	match to_major_minor(&scene.world, &mappings) {
+	match to_major_minor(&scene.world, &mappings, &disabled_insts) {
 		Some((major, minor)) => {
 			res.push(format!("\t\"tlas\" : [ {}, {} ],", major, minor));
 		},
@@ -114,7 +86,6 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 	};
 
 	res.push("\t\"box_nodes\" : [".to_string());
-	let end = boxes.len();
 	for (i, box_idx) in boxes.iter().enumerate() {
 		res.push("\t\t{".to_string());
 		let boxx = &scene.mappings[*box_idx];
@@ -133,10 +104,11 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 			let data = &scene.sequences[*idx];
 			let mut kids = vec![];
 			for node in data.vals.iter() {
-				if let Some((major, minor)) = to_major_minor(node, &mappings) {
+				if let Some((major, minor)) = to_major_minor(node, &mappings, &disabled_insts) {
 					kids.push((major, minor));
 				}
 			}
+			let end = kids.len();
 			for (i, (major, minor)) in kids.iter().enumerate() {
 				if i + 1 == end {
 					res.push(format!("\t\t\t\t[ {}, {} ]", major, minor));
@@ -157,8 +129,13 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 
 	res.push("\t\"instance_nodes\" : [".to_string());
 	for (inst_idx, instance) in scene.instances.iter().enumerate() {
+		// If this is an instance of a ray, do NOT print it!
+		let cur = Node::Instance(inst_idx);
+		if to_major_minor(&cur, &mappings, &disabled_insts).is_none() {
+			continue;
+		}
+
 		res.push("\t\t{".to_string());
-		// TODO: If this is an instance of a ray, do NOT print it!
 
 		let trans = instance.world_to_obj();
 		res.push("\t\t\t\"world_to_object\" : [".to_string());
@@ -181,7 +158,7 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 		}
 		res.push("\t\t\t],".to_string());
 
-		match to_major_minor(&instance.affected, &mappings) {
+		match to_major_minor(&instance.affected, &mappings, &disabled_insts) {
 			Some((major, minor)) => {
 				res.push(format!("\t\t\t\"child_node\" : [ {}, {} ],", major, minor));
 			},

@@ -32,7 +32,7 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	fn new() -> Sequence { Sequence { vals: vec![] } }
+	pub fn new() -> Sequence { Sequence { vals: vec![] } }
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
@@ -162,7 +162,7 @@ pub struct Mapping {
 	pub max: Point3D,
 }
 impl Mapping {
-	fn new() -> Mapping {
+	pub fn new() -> Mapping {
 		Mapping {
 			fields: HashMap::new(),
 			is_box: false,

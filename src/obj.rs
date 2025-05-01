@@ -160,16 +160,19 @@ fn handle_node(
 				lines.push("".to_string());
 				lines.push(format!("o box{}", *idx));
 
-				let mins = transform * homogenize_pt(&map.min);
-				let maxs = transform * homogenize_pt(&map.max);
-				lines.push(format!("v {} {} {}", mins.x, mins.y, mins.z));
-				lines.push(format!("v {} {} {}", mins.x, mins.y, maxs.z));
-				lines.push(format!("v {} {} {}", mins.x, maxs.y, mins.z));
-				lines.push(format!("v {} {} {}", mins.x, maxs.y, maxs.z));
-				lines.push(format!("v {} {} {}", maxs.x, mins.y, mins.z));
-				lines.push(format!("v {} {} {}", maxs.x, mins.y, maxs.z));
-				lines.push(format!("v {} {} {}", maxs.x, maxs.y, mins.z));
-				lines.push(format!("v {} {} {}", maxs.x, maxs.y, maxs.z));
+				for i in 0..8 {
+					let mut point = new_point(0.0);
+					for j in 0..3 {
+						point[j] = if ((i >> j) & 1) == 1 {
+							map.max[j]
+						} else {
+							map.min[j]
+						}
+					}
+
+					let vert = transform * homogenize_pt(&point);
+					lines.push(format!("v {} {} {}", vert.x, vert.y, vert.z));
+				}
 
 				let mut fill = false;
 				if let Some(Node::Bool(val)) = map.fields.get("opaque") {
@@ -177,16 +180,16 @@ fn handle_node(
 				}
 
 				if fill {
-					lines.push("f -8 -7 -5 -6".to_string()); // minX
-					lines.push("f -8 -7 -3 -4".to_string()); // minY
-					lines.push("f -7 -5 -1 -3".to_string()); // minZ
-					lines.push("f -4 -3 -1 -2".to_string()); // maxX
-					lines.push("f -6 -5 -1 -2".to_string()); // maxY
-					lines.push("f -8 -6 -2 -4".to_string()); // maxZ
+					lines.push("f -8 -4 -2 -6".to_string()); // minX
+					lines.push("f -8 -4 -3 -7".to_string()); // minY
+					lines.push("f -4 -2 -1 -3".to_string()); // minZ
+					lines.push("f -7 -3 -1 -5".to_string()); // maxX
+					lines.push("f -6 -2 -1 -5".to_string()); // maxY
+					lines.push("f -8 -6 -5 -7".to_string()); // maxZ
 				} else {
-					lines.push("l -8 -7 -5 -6".to_string());
-					lines.push("l -3 -1 -2 -4".to_string());
-					lines.push("l -8 -4 -3 -7 -5 -1 -2 -6 -8".to_string());
+					lines.push("l -8 -4 -2 -6".to_string());
+					lines.push("l -3 -1 -5 -7".to_string());
+					lines.push("l -8 -7 -3 -4 -2 -1 -5 -6 -8".to_string());
 				}
 			}
 			if let Some(Node::Sequence(idx)) = map.fields.get("data") {

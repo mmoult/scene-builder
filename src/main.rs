@@ -65,6 +65,10 @@ struct Args {
 	#[arg(short = 't', long, action)]
 	root: bool,
 
+	/// Split tri-strips into individual triangles. Enabled implicitly when generating BVH target
+	#[arg(short = 'p', long, action)]
+	split: bool,
+
 	/// Force instance nodes to hold only boxes directly.
 	#[arg(short, long, action)]
 	wrap: bool,
@@ -122,6 +126,12 @@ fn main() -> Result<(), String> {
 
 	// If we are simply verifying the scene, we are done now.
 	if let OutputFormat::Verify = out_format {
+		if !args.out.is_empty() {
+			return Err(format!(
+				"Cannot print to \"{}\" because verification mode is enabled!",
+				args.out
+			));
+		}
 		return Ok(());
 	}
 	// Otherwise, we want to apply transformations given by the command line arguments. Then we can
@@ -138,7 +148,7 @@ fn main() -> Result<(), String> {
 			args.wrap,
 			args.box_size,
 			args.double,
-			out_format == OutputFormat::Bvh,
+			out_format == OutputFormat::Bvh || args.split,
 		);
 	}
 

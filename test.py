@@ -29,13 +29,16 @@ def eq_file(got, expected_file):
         seen = f.read()
     return seen == got
 
+import sys
+regen = len(sys.argv) > 1 and sys.argv[1] == "regen"
+
 fails = 0
 total = 0
 
 example_path = os.path.join(repo_root, "examples")
 import subprocess
 
-def check(root, scene, out, format):
+def run(root, scene, out, format, regen):
     global fails, total
     scene = os.path.join(root, scene)
     out = os.path.join(root, out)
@@ -45,6 +48,9 @@ def check(root, scene, out, format):
     if res.returncode != 0 or not eq_file(res.stdout, out):
         fails += 1
         print("X", os.path.relpath(out, example_path))
+    if regen:
+        with open(out, "w") as f:
+            f.write(res.stdout.decode())
 
 for (root, dirs, files) in os.walk(example_path, topdown=True):
     scene = None
@@ -61,9 +67,9 @@ for (root, dirs, files) in os.walk(example_path, topdown=True):
 
     if scene is not None:
         if obj_out is not None:
-            check(root, scene, obj_out, "obj")
+            run(root, scene, obj_out, "obj", regen)
         if bvh_json_out is not None:
-            check(root, scene, bvh_json_out, "bvh")
+            run(root, scene, bvh_json_out, "bvh", regen)
 
 # Print results
 if total == 0:
