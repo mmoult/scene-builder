@@ -32,11 +32,15 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	pub fn new() -> Sequence { Sequence { vals: vec![] } }
+	pub fn new() -> Sequence {
+		Sequence { vals: vec![] }
+	}
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
-pub fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
+pub fn new_point(val: f64) -> Point3D {
+	Point3D::new(val, val, val)
+}
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
@@ -153,7 +157,9 @@ pub fn homogenize(m: &TransformMat) -> SquareMat {
 	]
 }
 
-pub fn homogenize_pt(p: &Point3D) -> HomoPoint { HomoPoint::new(p.x, p.y, p.z, 1.0) }
+pub fn homogenize_pt(p: &Point3D) -> HomoPoint {
+	HomoPoint::new(p.x, p.y, p.z, 1.0)
+}
 
 pub struct Mapping {
 	pub fields: HashMap<String, Node>,
@@ -336,9 +342,6 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				}
 				let strip_at = scene.strips.len();
 				scene.strips.push(strip);
-				// We can safely remove the old mapping since we parsed it directly (and therefore,
-				// it couldn't have saved and referenced elsewhere).
-				scene.mappings.pop();
 				Node::Strip(strip_at)
 			} else if scene.mappings[name_at].fields.contains_key("instance") {
 				// This is not, in fact, a custom, it is an instance. Convert it to such
@@ -389,9 +392,6 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				};
 				let scene_at = scene.instances.len();
 				scene.instances.push(inst);
-				// We can safely remove the old mapping since we parsed it directly (and therefore,
-				// it couldn't have saved and referenced elsewhere).
-				scene.mappings.pop();
 				Node::Instance(scene_at)
 			} else if scene.mappings[name_at].fields.contains_key("origin")
 				&& scene.mappings[name_at].fields.contains_key("direction")
@@ -440,9 +440,6 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				};
 				let ray_at = scene.rays.len();
 				scene.rays.push(ray);
-				// We can safely remove the old mapping since we parsed it directly (and therefore,
-				// it couldn't have saved and referenced elsewhere).
-				scene.mappings.pop();
 				Node::Ray(ray_at)
 			} else {
 				Node::Mapping(name_at)

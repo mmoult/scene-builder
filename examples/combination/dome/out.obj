@@ -28,7 +28,7 @@ Ns 18.0
 
 usemtl color2
 
-o box1
+o box2
 v -2 -2 -1
 v 2 -2 -1
 v -2 2 -1

@@ -1,5 +1,6 @@
 use crate::ir::{Node, Scene};
 
+#[derive(Clone)]
 enum MapType {
 	Unused,
 	Box(usize),
@@ -35,32 +36,59 @@ fn to_major_minor(
 	}
 }
 
+fn track_live_mappings(scene: &Scene, mappings: &mut Vec<MapType>, node: &Node) {
+	match node {
+		Node::Instance(idx) => {
+			let inst = &scene.instances[*idx];
+			track_live_mappings(scene, mappings, &inst.affected);
+		},
+		Node::Mapping(idx) => {
+			mappings[*idx] = MapType::Box(0); // use default 0 which will be replaced later
+			let map = &scene.mappings[*idx];
+			if let Some(Node::Sequence(idx)) = map.fields.get("data") {
+				let data = &scene.sequences[*idx];
+				for node in data.vals.iter() {
+					track_live_mappings(scene, mappings, node);
+				}
+			}
+		},
+		_ => {
+			// Nothing to do for the nonrecursive, non-mapping types
+		},
+	}
+}
+
 pub fn to_bvh(scene: &Scene) -> Vec<String> {
 	// We need to check some conditions about mappings and instances before we can start printing
 
-	// 1) Determine how to handle each mapping. Each can be one of: ignored, box, procedural. We
-	//    must know the category each fits in before we start printing any nodes.
-	let mut mappings = vec![];
+	// 1) Determine how to handle each mapping. Each can be one of: ignored, box, procedural, dead.
+	//    We must know the category each fits in before we start printing any nodes.
+	let mut mappings = vec![MapType::Unused; scene.mappings.len()];
+	track_live_mappings(scene, &mut mappings, &scene.world);
 
 	let mut box_num = 0;
 	let mut boxes = vec![];
 	let mut proc_num = 0;
 	let mut procs = vec![];
 
-	for i in 0..scene.mappings.len() {
+	for (i, map_type) in mappings.iter_mut().enumerate() {
+		if let MapType::Unused = map_type {
+			continue; // skip over dead maps
+		}
+
 		let mapping = &scene.mappings[i];
 		if mapping.is_box {
 			if mapping.fields.contains_key("min") {
-				mappings.push(MapType::Procedural(proc_num));
+				*map_type = MapType::Procedural(proc_num);
 				procs.push(i);
 				proc_num += 1;
 			} else {
-				mappings.push(MapType::Box(box_num));
+				*map_type = MapType::Box(box_num);
 				boxes.push(i);
 				box_num += 1;
 			}
 		} else {
-			mappings.push(MapType::Unused);
+			*map_type = MapType::Unused;
 		}
 	}
 
@@ -138,7 +166,7 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 		res.push("\t\t{".to_string());
 
 		let trans = instance.world_to_obj();
-		res.push("\t\t\t\"world_to_object\" : [".to_string());
+		res.push("\t\t\t\"world_to_obj\" : [".to_string());
 		for i in 0..4 {
 			if i == 3 {
 				res.push(format!(
@@ -243,11 +271,11 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 		let proc = &scene.mappings[*proc_idx];
 
 		res.push(format!(
-			"\t\t\t\"min_bounds\" : [ {}, {}, {} ]",
+			"\t\t\t\"min_bounds\" : [ {}, {}, {} ],",
 			proc.min.x, proc.min.y, proc.min.z
 		));
 		res.push(format!(
-			"\t\t\t\"max_bounds\" : [ {}, {}, {} ]",
+			"\t\t\t\"max_bounds\" : [ {}, {}, {} ],",
 			proc.max.x, proc.max.y, proc.max.z
 		));
 
