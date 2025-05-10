@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Node {
 	// literal values
 	Number(f64),
@@ -32,22 +32,18 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	pub fn new() -> Sequence {
-		Sequence { vals: vec![] }
-	}
+	pub fn new() -> Sequence { Sequence { vals: vec![] } }
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
-pub fn new_point(val: f64) -> Point3D {
-	Point3D::new(val, val, val)
-}
+pub fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
 	pub fields: HashMap<String, Node>,
 }
 impl Strip {
-	fn new() -> Strip {
+	pub fn new() -> Strip {
 		Strip {
 			vals: vec![],
 			fields: HashMap::new(),
@@ -157,9 +153,7 @@ pub fn homogenize(m: &TransformMat) -> SquareMat {
 	]
 }
 
-pub fn homogenize_pt(p: &Point3D) -> HomoPoint {
-	HomoPoint::new(p.x, p.y, p.z, 1.0)
-}
+pub fn homogenize_pt(p: &Point3D) -> HomoPoint { HomoPoint::new(p.x, p.y, p.z, 1.0) }
 
 pub struct Mapping {
 	pub fields: HashMap<String, Node>,

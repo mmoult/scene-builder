@@ -1,4 +1,4 @@
-use crate::ir::{Mapping, Node, Point3D, Scene, Sequence, as_3d, homogenize_pt, new_point};
+use crate::ir::{Mapping, Node, Point3D, Scene, Sequence, Strip, as_3d, homogenize_pt, new_point};
 
 impl Node {
 	pub fn set_bounds(&self, scene: &mut Scene) -> (Point3D, Point3D) {
@@ -112,6 +112,38 @@ impl Node {
 	}
 }
 
+fn replace(scene: &mut Scene, before: &Node, after: &Node, curr: &Node) {
+	match curr {
+		Node::Instance(idx) => {
+			let affected = scene.instances[*idx].affected;
+			if affected == *before {
+				scene.instances[*idx].affected = *after;
+			} else {
+				replace(scene, before, after, &affected);
+			}
+		},
+		Node::Mapping(idx) => {
+			let map = &scene.mappings[*idx];
+			let mut recursives = vec![];
+			if let Some(Node::Sequence(idx)) = map.fields.get("data") {
+				let seq = &mut scene.sequences[*idx];
+				for i in 0..seq.vals.len() {
+					if seq.vals[i] == *before {
+						seq.vals[i] = *after;
+					} else {
+						recursives.push(seq.vals[i]);
+					}
+				}
+
+				for element in recursives {
+					replace(scene, before, after, &element);
+				}
+			}
+		},
+		_ => {},
+	}
+}
+
 pub fn transform(
 	scene: &mut Scene,
 	root: bool,
@@ -151,7 +183,69 @@ pub fn transform(
 
 	// Split tri-nodes with more than 3 vertices into individual triangles
 	if triangle {
-		// todo!();
+		let mut tris = vec![];
+		fn find_to_split(scene: &Scene, tris: &mut Vec<usize>, node: &Node) {
+			match node {
+				Node::Strip(idx) => {
+					if scene.strips[*idx].vals.len() > 3 {
+						tris.push(*idx);
+					}
+				},
+				Node::Instance(idx) => {
+					find_to_split(scene, tris, &scene.instances[*idx].affected);
+				},
+				Node::Mapping(idx) => {
+					if let Some(Node::Sequence(idx)) = scene.mappings[*idx].fields.get("data") {
+						for element in scene.sequences[*idx].vals.iter() {
+							find_to_split(scene, tris, element);
+						}
+					}
+				},
+				_ => {},
+			}
+		}
+		find_to_split(scene, &mut tris, &scene.world);
+
+		let world = scene.world;
+		for tri_idx in tris {
+			let seq_at = scene.sequences.len();
+			scene.sequences.push(Sequence::new());
+
+			let map_at = scene.mappings.len();
+			scene.mappings.push(Mapping::new());
+			scene.mappings[map_at]
+				.fields
+				.insert("data".to_string(), Node::Sequence(seq_at));
+
+			let before = Node::Strip(tri_idx);
+			let after = Node::Mapping(map_at);
+			replace(scene, &before, &after, &world);
+
+			let triangle = &scene.strips[tri_idx];
+			let mut children = vec![];
+			for i in 2..triangle.vals.len() {
+				let idx = children.len();
+				children.push(Strip::new());
+				if i % 2 == 0 {
+					children[idx].vals.push(triangle.vals[i - 2]);
+					children[idx].vals.push(triangle.vals[i - 1]);
+				} else {
+					children[idx].vals.push(triangle.vals[i - 1]);
+					children[idx].vals.push(triangle.vals[i - 2]);
+				}
+				children[idx].vals.push(triangle.vals[i]);
+
+				for (name, val) in triangle.fields.iter() {
+					children[idx].fields.insert(name.clone(), *val);
+				}
+			}
+
+			for child in children {
+				let kid_at = scene.strips.len();
+				scene.strips.push(child);
+				scene.sequences[seq_at].vals.push(Node::Strip(kid_at));
+			}
+		}
 	}
 
 	if wrap {

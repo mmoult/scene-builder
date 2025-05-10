@@ -7,26 +7,33 @@ enum MapType {
 	Procedural(usize),
 }
 
+fn calculate_dead_delta(dead: &[usize], idx: &usize) -> Option<usize> {
+	let mut delta = 0;
+	for dead_idx in dead {
+		match (*dead_idx).cmp(idx) {
+			std::cmp::Ordering::Less => {
+				delta += 1;
+			},
+			std::cmp::Ordering::Equal => return None,
+			std::cmp::Ordering::Greater => break,
+		}
+	}
+	Some(delta)
+}
+
+fn in_dead(dead: &[usize], idx: &usize) -> bool {
+	dead.binary_search(idx).is_ok()
+}
+
 fn to_major_minor(
 	node: &Node,
 	mappings: &[MapType],
-	disabled_insts: &[usize],
+	dead_insts: &[usize],
+	dead_strips: &[usize],
 ) -> Option<(usize, usize)> {
 	match node {
-		Node::Strip(idx) => Some((2, *idx)),
-		Node::Instance(idx) => {
-			let mut delta = 0;
-			for disabled in disabled_insts {
-				match (*disabled).cmp(idx) {
-					std::cmp::Ordering::Less => {
-						delta += 1;
-					},
-					std::cmp::Ordering::Equal => return None,
-					std::cmp::Ordering::Greater => break,
-				}
-			}
-			Some((1, *idx - delta))
-		},
+		Node::Strip(idx) => calculate_dead_delta(dead_strips, idx).map(|delta| (2, *idx - delta)),
+		Node::Instance(idx) => calculate_dead_delta(dead_insts, idx).map(|delta| (1, *idx - delta)),
 		Node::Mapping(idx) => match mappings[*idx] {
 			MapType::Unused => None,
 			MapType::Box(i) => Some((0, i)),
@@ -94,16 +101,24 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 
 	// 2) Rays are removed in the BVH target, so we must delete any instance nodes which have ray
 	//    children (since they cannot exist independently).
-	let mut disabled_insts = vec![];
+	let mut dead_insts = vec![];
 	for (inst_idx, instance) in scene.instances.iter().enumerate() {
 		if let Node::Ray(_) = instance.affected {
-			disabled_insts.push(inst_idx);
+			dead_insts.push(inst_idx);
+		}
+	}
+
+	// 3) Strips with more than 3 vertices must have been killed and replaced with triangles
+	let mut dead_strips = vec![];
+	for (strip_idx, tri) in scene.strips.iter().enumerate() {
+		if tri.vals.len() > 3 {
+			dead_strips.push(strip_idx);
 		}
 	}
 
 	// Finally, print all nodes, using the numbering determined before to convert all references
 	let mut res = vec!["{".to_string()];
-	match to_major_minor(&scene.world, &mappings, &disabled_insts) {
+	match to_major_minor(&scene.world, &mappings, &dead_insts, &dead_strips) {
 		Some((major, minor)) => {
 			res.push(format!("\t\"tlas\" : [ {}, {} ],", major, minor));
 		},
@@ -132,7 +147,9 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 			let data = &scene.sequences[*idx];
 			let mut kids = vec![];
 			for node in data.vals.iter() {
-				if let Some((major, minor)) = to_major_minor(node, &mappings, &disabled_insts) {
+				if let Some((major, minor)) =
+					to_major_minor(node, &mappings, &dead_insts, &dead_strips)
+				{
 					kids.push((major, minor));
 				}
 			}
@@ -158,11 +175,9 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 	res.push("\t\"instance_nodes\" : [".to_string());
 	for (inst_idx, instance) in scene.instances.iter().enumerate() {
 		// If this is an instance of a ray, do NOT print it!
-		let cur = Node::Instance(inst_idx);
-		if to_major_minor(&cur, &mappings, &disabled_insts).is_none() {
+		if in_dead(&dead_insts, &inst_idx) {
 			continue;
 		}
-
 		res.push("\t\t{".to_string());
 
 		let trans = instance.world_to_obj();
@@ -186,7 +201,7 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 		}
 		res.push("\t\t\t],".to_string());
 
-		match to_major_minor(&instance.affected, &mappings, &disabled_insts) {
+		match to_major_minor(&instance.affected, &mappings, &dead_insts, &dead_strips) {
 			Some((major, minor)) => {
 				res.push(format!("\t\t\t\"child_node\" : [ {}, {} ],", major, minor));
 			},
@@ -227,6 +242,9 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 
 	res.push("\t\"triangle_nodes\" : [".to_string());
 	for (tri_idx, tri) in scene.strips.iter().enumerate() {
+		if in_dead(&dead_strips, &tri_idx) {
+			continue;
+		}
 		res.push("\t\t{".to_string());
 
 		let mut geom_index = 0;

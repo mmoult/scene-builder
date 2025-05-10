@@ -12,7 +12,17 @@
 			"min_bounds" : [ -2, -2, 0 ],
 			"max_bounds" : [ 2, 2, 2 ],
 			"child_nodes" : [
-				[ 2, 0 ]
+				[ 2, 0 ],
+				[ 2, 1 ],
+				[ 2, 2 ],
+				[ 2, 3 ],
+				[ 2, 4 ],
+				[ 2, 5 ],
+				[ 2, 6 ],
+				[ 2, 7 ],
+				[ 2, 8 ],
+				[ 2, 9 ],
+				[ 2, 10 ]
 			]
 		}
 	],
@@ -34,19 +44,109 @@
 	"triangle_nodes" : [
 		{
 			"geometry_index" : 0,
-			"primitive_index" : 0,
+			"primitive_index" : 1,
 			"opaque" : true,
 			"vertices" : [
 				[ 2, -0.75, 0 ],
 				[ 2, 0.75, 0 ],
+				[ 0, 0, 2 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 2,
+			"opaque" : true,
+			"vertices" : [
+				[ 0, 0, 2 ],
+				[ 2, 0.75, 0 ],
+				[ 0.75, 2, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 3,
+			"opaque" : true,
+			"vertices" : [
 				[ 0, 0, 2 ],
 				[ 0.75, 2, 0 ],
+				[ -0.75, 2, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 4,
+			"opaque" : true,
+			"vertices" : [
+				[ -0.75, 2, 0 ],
+				[ 0.75, 2, 0 ],
+				[ 0, 0, 2 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 5,
+			"opaque" : true,
+			"vertices" : [
 				[ -0.75, 2, 0 ],
 				[ 0, 0, 2 ],
+				[ -2, 0.75, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 6,
+			"opaque" : true,
+			"vertices" : [
+				[ -2, 0.75, 0 ],
+				[ 0, 0, 2 ],
+				[ -2, -0.75, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 7,
+			"opaque" : true,
+			"vertices" : [
 				[ -2, 0.75, 0 ],
 				[ -2, -0.75, 0 ],
+				[ 0, 0, 2 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 8,
+			"opaque" : true,
+			"vertices" : [
+				[ 0, 0, 2 ],
+				[ -2, -0.75, 0 ],
+				[ -0.75, -2, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 9,
+			"opaque" : true,
+			"vertices" : [
 				[ 0, 0, 2 ],
 				[ -0.75, -2, 0 ],
+				[ 0.75, -2, 0 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 10,
+			"opaque" : true,
+			"vertices" : [
+				[ 0.75, -2, 0 ],
+				[ -0.75, -2, 0 ],
+				[ 0, 0, 2 ]
+			]
+		},
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 11,
+			"opaque" : true,
+			"vertices" : [
 				[ 0.75, -2, 0 ],
 				[ 0, 0, 2 ],
 				[ 2, -0.75, 0 ]
