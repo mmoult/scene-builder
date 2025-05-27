@@ -208,7 +208,7 @@ pub fn to_bvh(scene: &Scene) -> Vec<String> {
 			None => panic!("Instance without legal child should have already been filtered!"),
 		};
 
-		let mut id = 0;
+		let mut id = inst_idx;
 		if let Some(Node::Number(v)) = instance.fields.get("id") {
 			id = *v as usize;
 		}
