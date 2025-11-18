@@ -1,6 +1,7 @@
 use crate::ir::{Mapping, Node, Point3D, Scene, Sequence, Strip, as_3d, homogenize_pt, new_point};
 
 impl Node {
+	/// Recursively compute and set bounds for this node and its children.
 	pub fn set_bounds(&self, scene: &mut Scene) -> (Point3D, Point3D) {
 		match self {
 			Node::Strip(idx) => {
@@ -112,6 +113,7 @@ impl Node {
 	}
 }
 
+/// Replace all instances of `before` with `after` in the scene, recursively searching from `curr`.
 fn replace(scene: &mut Scene, before: &Node, after: &Node, curr: &Node) {
 	match curr {
 		Node::Instance(idx) => {
@@ -144,6 +146,13 @@ fn replace(scene: &mut Scene, before: &Node, after: &Node, curr: &Node) {
 	}
 }
 
+/// Transformation "main", so to speak. Launches all requested transformations on the scene.
+/// @param scene The scene to transform.
+/// @param root Whether to box the root node if it is not already a mapping.
+/// @param wrap Box any instance children which aren't boxes
+/// @param box_size Maximum number of children per box. 0 indicates unbounded.
+/// @param double Transform every box to either hold one child of any type OR hold multiple boxes
+/// @param triangle Whether to split tri-strips into individual triangles.
 pub fn transform(
 	scene: &mut Scene,
 	root: bool,
@@ -249,7 +258,6 @@ pub fn transform(
 	}
 
 	if wrap {
-		// Box any instance children which aren't boxes
 		todo!();
 	}
 

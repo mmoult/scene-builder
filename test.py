@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
+import argparse
 import os
 
 #=======================================================================================================================
 # Verify that all outputs in `examples` match what the scene builder currently generates.
 #=======================================================================================================================
+
+parser = argparse.ArgumentParser(description="Run all integration tests for scene-builder.")
+parser.add_argument('--verbose', '-v', action='store_true', help="Print all found tests and launch command.")
+args = parser.parse_args()
 
 # Check that the interpreter has been built
 repo_root = os.path.abspath(os.path.dirname(__file__))
@@ -45,9 +50,27 @@ def run(root, scene, out, format, regen):
     total += 1
     cmd = [use_bin, "-f", format, scene]
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    status = None
+    reports = []
     if res.returncode != 0 or not eq_file(res.stdout, out):
         fails += 1
-        print("X", os.path.relpath(out, example_path))
+        status = "X"
+        if res.returncode != 0:
+            reports.append("Non-zero exit code: {}".format(res.returncode))
+        else:
+            reports.append("Output differs from expected.")
+    elif args.verbose:
+        status = "✓"
+
+    if status is not None:
+        if args.verbose:
+            print(status, ' '.join(cmd))
+            for report in reports:
+                print(" ", report)
+        else:
+            print(status, os.path.relpath(out, example_path))
+
     if regen:
         with open(out, "w") as f:
             f.write(res.stdout.decode())

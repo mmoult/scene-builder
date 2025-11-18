@@ -11,6 +11,10 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 defined in the Apache-2.0 license, shall be licensed under the Apache License, Version 2.0, without any additional
 terms or conditions.
 
+All code contributions should pass all:
+* unit tests (run `cargo test`)
+* integration tests (run `test.py`)
+
 ## License
 The source code, test examples, and all other associated files are distributed under the Apache 2.0 license.
 

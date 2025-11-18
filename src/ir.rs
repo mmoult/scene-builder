@@ -69,7 +69,9 @@ pub type HomoPoint = nalgebra::Vector4<f64>;
 
 pub struct Instance {
 	pub affected: Node,
+	/// The scale factor of x, y, z axes. 1.0 is no scaling.
 	pub scale: Point3D,
+	/// the rotation in x, y, z axes. In degrees.
 	pub rotate: Point3D,
 	pub translate: Point3D,
 	pub fields: HashMap<String, Node>,
@@ -467,4 +469,56 @@ pub fn to_ir(input: &Yaml) -> Result<Scene, String> {
 	scene.world = parse(input, &mut namespace, &mut scene)?;
 
 	Ok(scene)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	const COMPARE_EPS: f64 = 1e-6;
+
+	fn obj_to_world(scale: Point3D, rotate: Point3D, translate: Point3D, expected: &TransformMat) {
+		let inst = Instance {
+			affected: Node::Bool(true),
+			scale,
+			rotate,
+			translate,
+			fields: HashMap::new(),
+		};
+
+		let mat = inst.obj_to_world();
+		print!("found result:{}", mat);
+		for r in 0..3 {
+			for c in 0..4 {
+				assert!((mat[(r, c)] - expected[(r, c)]).abs() < COMPARE_EPS);
+			}
+		}
+	}
+
+	#[test]
+	fn obj_to_world0() {
+		obj_to_world(
+			Point3D::new(1.0, 1.0, 1.0),
+			Point3D::new(0.0, 0.0, 90.0),
+			Point3D::new(1.0, 2.0, 3.0),
+			&matrix![
+				 0.0, 1.0, 0.0, 1.0;
+				-1.0, 0.0, 0.0, 2.0;
+				 0.0, 0.0, 1.0, 3.0;
+			],
+		);
+	}
+
+	#[test]
+	fn obj_to_world1() {
+		obj_to_world(
+			Point3D::new(2.0, 1.5, 0.08),
+			Point3D::new(20.0, 60.0, 100.0),
+			Point3D::new(-1.0, -2.0, -3.0),
+			&matrix![
+				-0.173648, 0.984808, -1.732051, -1.0;
+				-1.465276, 0.192783,  0.256515, -2.0;
+				 0.015641, 0.068866,  0.037588, -3.0;
+			],
+		);
+	}
 }
