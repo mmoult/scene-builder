@@ -15,23 +15,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Version Info
-      # Version info is useful since clippy results will differ
-      run: rustup --version
     - name: Build
       run: cargo build --verbose
+    - name: Clippy
+      # should be pinned to the single version via rust-toolchain.toml
+      run: cargo clippy --verbose -- -D warnings
     - name: Test Unit
       run: cargo test --verbose
-    - name: Clippy
-      run: cargo clippy --verbose -- -D warnings
-      continue-on-error: true
+    - name: Integration Test
+      working-directory: ${{ github.workspace }}
+      run: ./test.py
 
     # Auditing will check that dependencies are up to date, but it takes a non-trivial time to download and build
     #- name: Install cargo-audit
     #  run: cargo install cargo-audit
     #- name: Audit
     #  run: cargo audit
-
-    - name: Integration Test
-      working-directory: ${{ github.workspace }}
-      run: ./test.py

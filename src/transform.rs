@@ -68,23 +68,21 @@ impl Node {
 
 				let map = &scene.mappings[*idx];
 
-				if let Some(n) = map.fields.get("min") {
-					if let Ok(pt) = as_3d(scene, n) {
+				if let Some(n) = map.fields.get("min")
+					&& let Ok(pt) = as_3d(scene, n) {
 						for i in 0..3 {
 							mins[i] = f64::min(mins[i], pt[i]);
 							maxs[i] = f64::max(maxs[i], pt[i]);
 						}
 					}
-				}
 
-				if let Some(n) = map.fields.get("max") {
-					if let Ok(pt) = as_3d(scene, n) {
+				if let Some(n) = map.fields.get("max")
+					&& let Ok(pt) = as_3d(scene, n) {
 						for i in 0..3 {
 							mins[i] = f64::min(mins[i], pt[i]);
 							maxs[i] = f64::max(maxs[i], pt[i]);
 						}
 					}
-				}
 
 				if let Some(Node::Sequence(idx)) = map.fields.get("data") {
 					let seq = &scene.sequences[*idx];

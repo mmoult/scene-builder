@@ -6,5 +6,5 @@ edition = "2024"
 [dependencies]
 clap = { version = "4.5.37", features = ["derive"] }
 yaml-rust2 = "0.10.1"
-nalgebra = "0.33.2"
+nalgebra = "0.34.1"
 colored = "3.0.0"
