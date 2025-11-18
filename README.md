@@ -12,7 +12,8 @@ defined in the Apache-2.0 license, shall be licensed under the Apache License, V
 terms or conditions.
 
 All code contributions should pass all:
-* format checks (run `cargo clippy --fix --allow-dirty -- -D warnings`)
+* formatting standards (run `cargo fmt`)
+* quality checks (run `cargo clippy --fix --allow-dirty -- -D warnings`)
 * unit tests (run `cargo test`)
 * integration tests (run `test.py`)
 
