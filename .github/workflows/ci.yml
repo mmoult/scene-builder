@@ -14,13 +14,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
+    # The setup-rust action installs rustfmt and clippy as per the rust-toolchain.toml.
+    # The version is pinned there (update when necessary), so we should get consistent results across all users.
+    - uses: moonrepo/setup-rust@v1
     - name: Build
       run: cargo build --verbose
     - name: Format
-      run: cargo fmt -- --check
+      run: cargo fmt --all --check
     - name: Clippy
-      # should be pinned to the single version via rust-toolchain.toml
       run: cargo clippy --verbose -- -D warnings
     - name: Test Unit
       run: cargo test --verbose
