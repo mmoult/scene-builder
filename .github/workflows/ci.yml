@@ -15,12 +15,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Version Info
+      # Version info is useful since clippy results will differ
+      run: rustup --version
     - name: Build
       run: cargo build --verbose
     - name: Test Unit
       run: cargo test --verbose
     - name: Clippy
       run: cargo clippy --verbose -- -D warnings
+      continue-on-error: true
 
     # Auditing will check that dependencies are up to date, but it takes a non-trivial time to download and build
     #- name: Install cargo-audit
