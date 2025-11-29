@@ -43,12 +43,12 @@ total = 0
 example_path = os.path.join(repo_root, "examples")
 import subprocess
 
-def run(root, scene, out, format, regen):
+def run(root, scene, out, format, regen, cmd_args):
     global fails, total
     scene = os.path.join(root, scene)
     out = os.path.join(root, out)
     total += 1
-    cmd = [use_bin, "-f", format, scene]
+    cmd = [use_bin, "-f", format] + cmd_args + [scene]
     res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     status = None
@@ -79,6 +79,7 @@ for (root, dirs, files) in os.walk(example_path, topdown=True):
     scene = None
     obj_out = None
     bvh_json_out = None
+    cmd_args = []
     for file in files:
         if file.startswith("out."):
             if file.endswith(".obj"):
@@ -87,12 +88,15 @@ for (root, dirs, files) in os.walk(example_path, topdown=True):
                 bvh_json_out = file
         elif file.endswith(".yaml"):
             scene = file
+        elif file == "args.txt":
+            with open(os.path.join(root, file), "r") as f:
+                cmd_args = f.read().strip().split()
 
     if scene is not None:
         if obj_out is not None:
-            run(root, scene, obj_out, "obj", regen)
+            run(root, scene, obj_out, "obj", regen, cmd_args)
         if bvh_json_out is not None:
-            run(root, scene, bvh_json_out, "bvh", regen)
+            run(root, scene, bvh_json_out, "bvh", regen, cmd_args)
 
 # Print results
 if total == 0:

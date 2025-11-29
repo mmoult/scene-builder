@@ -12,10 +12,10 @@ defined in the Apache-2.0 license, shall be licensed under the Apache License, V
 terms or conditions.
 
 All code contributions should pass all:
-* formatting standards (run `cargo fmt --all`)
 * quality checks (run `cargo clippy --fix --allow-dirty -- -D warnings`)
+* formatting standards (run `cargo fmt --all`)
 * unit tests (run `cargo test`)
-* integration tests (run `test.py`)
+* integration tests (build with `cargo build` then run `test.py`)
 
 ## License
 The source code, test examples, and all other associated files are distributed under the Apache 2.0 license.

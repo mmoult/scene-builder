@@ -32,15 +32,11 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	pub fn new() -> Sequence {
-		Sequence { vals: vec![] }
-	}
+	pub fn new() -> Sequence { Sequence { vals: vec![] } }
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
-pub fn new_point(val: f64) -> Point3D {
-	Point3D::new(val, val, val)
-}
+pub fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
 
 pub struct Strip {
 	pub vals: Vec<Point3D>,
@@ -160,9 +156,7 @@ pub fn homogenize(m: &TransformMat) -> SquareMat {
 	]
 }
 
-pub fn homogenize_pt(p: &Point3D) -> HomoPoint {
-	HomoPoint::new(p.x, p.y, p.z, 1.0)
-}
+pub fn homogenize_pt(p: &Point3D) -> HomoPoint { HomoPoint::new(p.x, p.y, p.z, 1.0) }
 
 pub struct Mapping {
 	pub fields: HashMap<String, Node>,
@@ -469,6 +463,32 @@ pub fn to_ir(input: &Yaml) -> Result<Scene, String> {
 	scene.world = parse(input, &mut namespace, &mut scene)?;
 
 	Ok(scene)
+}
+
+pub fn verify_instancing(scene: &Scene, max_level: u8) -> Result<(), String> {
+	assert!(max_level > 0); // should be checked before calling
+
+	fn verify_node(scene: &Scene, node: &Node, max_level: u8, level: u8) -> Result<(), String> {
+		match node {
+			Node::Instance(idx) => {
+				if level + 1 >= max_level {
+					return Err(format!("Instance {} found at level {}!", idx, level));
+				}
+				verify_node(scene, &scene.instances[*idx].affected, max_level, level + 1)?;
+			},
+			Node::Mapping(idx) => {
+				if let Some(Node::Sequence(seq_at)) = scene.mappings[*idx].fields.get("data") {
+					for element in scene.sequences[*seq_at].vals.iter() {
+						verify_node(scene, element, max_level, level)?;
+					}
+				}
+			},
+			_ => {},
+		}
+		Ok(())
+	}
+
+	verify_node(scene, &scene.world, max_level, 0)
 }
 
 #[cfg(test)]

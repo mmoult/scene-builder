@@ -153,6 +153,7 @@ fn replace(scene: &mut Scene, before: &Node, after: &Node, curr: &Node) {
 /// @param box_size Maximum number of children per box. 0 indicates unbounded.
 /// @param double Transform every box to either hold one child of any type OR hold multiple boxes
 /// @param triangle Whether to split tri-strips into individual triangles.
+/// @param raw Whether to generate no boxes at all.
 pub fn transform(
 	scene: &mut Scene,
 	root: bool,
@@ -160,6 +161,7 @@ pub fn transform(
 	box_size: u8,
 	double: bool,
 	triangle: bool,
+	raw: bool,
 ) {
 	if root {
 		let should_box = match scene.world {
@@ -195,11 +197,10 @@ pub fn transform(
 		let mut tris = vec![];
 		fn find_to_split(scene: &Scene, tris: &mut Vec<usize>, node: &Node) {
 			match node {
-				Node::Strip(idx) => {
+				Node::Strip(idx) =>
 					if scene.strips[*idx].vals.len() > 3 {
 						tris.push(*idx);
-					}
-				},
+					},
 				Node::Instance(idx) => {
 					find_to_split(scene, tris, &scene.instances[*idx].affected);
 				},
@@ -258,7 +259,39 @@ pub fn transform(
 	}
 
 	if wrap {
-		todo!();
+		fn wrap_inst_kid(scene: &mut Scene, node: &Node) {
+			fn recursive(scene: &mut Scene, mapping: usize) {
+				if let Some(Node::Sequence(idx)) = scene.mappings[mapping].fields.get("data") {
+					for element in scene.sequences[*idx].vals.clone() {
+						wrap_inst_kid(scene, &element);
+					}
+				}
+			}
+
+			match node {
+				Node::Instance(idx) => {
+					let instance = &mut scene.instances[*idx];
+					match instance.affected {
+						Node::Mapping(idx) => recursive(scene, idx),
+						_ => {
+							// Need to box this child
+							let seq_at = scene.sequences.len();
+							scene.sequences.push(Sequence::new());
+							scene.sequences[seq_at].vals.push(instance.affected);
+							let map_at = scene.mappings.len();
+							scene.mappings.push(Mapping::new());
+							scene.mappings[map_at]
+								.fields
+								.insert("data".to_string(), Node::Sequence(seq_at));
+							instance.affected = Node::Mapping(map_at);
+						},
+					}
+				},
+				Node::Mapping(idx) => recursive(scene, *idx),
+				_ => {},
+			}
+		}
+		wrap_inst_kid(scene, &scene.world.clone());
 	}
 
 	if box_size != 0 {
@@ -273,4 +306,10 @@ pub fn transform(
 	// The last transformation is to add box data to mappings where necessary
 	let world = scene.world;
 	world.set_bounds(scene);
+
+	if raw {
+		// If raw is enabled, we must flatten all mappings
+		// Note, this cannot be used in generating BVH output, since that doesn't make sense
+		todo!();
+	}
 }

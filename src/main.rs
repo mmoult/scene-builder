@@ -22,9 +22,7 @@ impl OutputFormat {
 }
 
 impl clap::ValueEnum for OutputFormat {
-	fn value_variants<'a>() -> &'a [Self] {
-		&[Self::Verify, Self::Bvh, Self::Obj]
-	}
+	fn value_variants<'a>() -> &'a [Self] { &[Self::Verify, Self::Bvh, Self::Obj] }
 
 	fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
 		Some(clap::builder::PossibleValue::new(self.to_str()))
@@ -33,9 +31,7 @@ impl clap::ValueEnum for OutputFormat {
 
 use std::fmt;
 impl fmt::Display for OutputFormat {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.to_str())
-	}
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.to_str()) }
 }
 
 /// Compile scene yaml files into BVH or OBJ format
@@ -76,6 +72,12 @@ struct Args {
 	/// Force instance nodes to hold only boxes directly.
 	#[arg(short, long, action)]
 	wrap: bool,
+
+	/// Verify the output uses no more than the given number of instance levels, fail if not. 0
+	/// indicates unbounded. 1 is no instancing. 2 is for two levels: root may use instance. 3
+	/// allows an instance to use an instance. Et cetera.
+	#[arg(short, long, action, default_value_t = 0)]
+	instancing: u8,
 
 	/// YAML file path to read scene data from
 	#[arg(required = true)]
@@ -128,6 +130,11 @@ fn main() -> Result<(), String> {
 	// Convert from input data to IR data by checking grammar
 	let mut scene = ir::to_ir(&docs[0])?;
 
+	// Verify instancing levels if requested
+	if args.instancing > 0 {
+		ir::verify_instancing(&scene, args.instancing)?;
+	}
+
 	// If we are simply verifying the scene, we are done now.
 	if let OutputFormat::Verify = out_format {
 		if !args.out.is_empty() {
@@ -153,6 +160,7 @@ fn main() -> Result<(), String> {
 			args.box_size,
 			args.double,
 			out_format == OutputFormat::Bvh || args.split,
+			args.raw,
 		);
 	}
 

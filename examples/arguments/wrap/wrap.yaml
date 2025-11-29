@@ -1,0 +1,30 @@
+tri:  # notably, this isn't a box
+  strip:
+  - [1, 2, 3]
+  - [2, 0, 0]
+  - [1, -2, 1]
+
+outlined:
+  color: [0, 0, 255]
+  instance: tri  # wrap must be able to go across non-inline child
+  translate: [0, 0, -1]
+
+data:
+- instance:
+    strip: # inline non-box child
+    - [-1, 1, 0]
+    - [1, -1, 0]
+    - [1, 1, 1]
+    color: [250, 48, 148]
+  rotate: [45, 0, 0]
+- outlined
+- instance:
+    data:  # the instance child is a box. Should not be affected by wrap
+    - instance: tri
+      translate: [0, 0, 2]
+    - strip:
+      - [-2, -2, 0]
+      - [2, -2, 0]
+      - [0, 2, 2]
+      color: [34, 139, 34]
+  scale: [1, 1, 1]
