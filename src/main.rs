@@ -22,7 +22,9 @@ impl OutputFormat {
 }
 
 impl clap::ValueEnum for OutputFormat {
-	fn value_variants<'a>() -> &'a [Self] { &[Self::Verify, Self::Bvh, Self::Obj] }
+	fn value_variants<'a>() -> &'a [Self] {
+		&[Self::Verify, Self::Bvh, Self::Obj]
+	}
 
 	fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
 		Some(clap::builder::PossibleValue::new(self.to_str()))
@@ -31,7 +33,9 @@ impl clap::ValueEnum for OutputFormat {
 
 use std::fmt;
 impl fmt::Display for OutputFormat {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", self.to_str()) }
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.to_str())
+	}
 }
 
 /// Compile scene yaml files into BVH or OBJ format

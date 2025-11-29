@@ -197,10 +197,11 @@ pub fn transform(
 		let mut tris = vec![];
 		fn find_to_split(scene: &Scene, tris: &mut Vec<usize>, node: &Node) {
 			match node {
-				Node::Strip(idx) =>
+				Node::Strip(idx) => {
 					if scene.strips[*idx].vals.len() > 3 {
 						tris.push(*idx);
-					},
+					}
+				},
 				Node::Instance(idx) => {
 					find_to_split(scene, tris, &scene.instances[*idx].affected);
 				},
