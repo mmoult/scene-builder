@@ -8,6 +8,7 @@ pub enum Node {
 	// link to some other value held by the scene
 	Sequence(usize),
 	Strip(usize),
+	Point(usize),
 	Ray(usize),
 	Instance(usize),
 	Mapping(usize),
@@ -21,6 +22,7 @@ impl fmt::Display for Node {
 			Node::Bool(v) => write!(f, "{}", v),
 			Node::Sequence(i) => write!(f, "Sequence{}", i),
 			Node::Strip(i) => write!(f, "Strip{}", i),
+			Node::Point(i) => write!(f, "Point{}", i),
 			Node::Ray(i) => write!(f, "Ray{}", i),
 			Node::Instance(i) => write!(f, "Instance{}", i),
 			Node::Mapping(i) => write!(f, "Mapping{}", i),
@@ -40,6 +42,19 @@ impl Sequence {
 pub type Point3D = nalgebra::Vector3<f64>;
 pub fn new_point(val: f64) -> Point3D {
 	Point3D::new(val, val, val)
+}
+
+pub struct Point {
+	pub loc: Point3D,
+	pub fields: HashMap<String, Node>,
+}
+impl Point {
+	pub fn new() -> Point {
+		Point {
+			loc: new_point(0.0),
+			fields: HashMap::new(),
+		}
+	}
 }
 
 pub struct Strip {
@@ -191,6 +206,7 @@ pub struct Scene {
 	pub world: Node,
 	pub sequences: Vec<Sequence>,
 	pub strips: Vec<Strip>,
+	pub points: Vec<Point>,
 	pub rays: Vec<Ray>,
 	pub instances: Vec<Instance>,
 	pub mappings: Vec<Mapping>,
@@ -346,6 +362,21 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				let strip_at = scene.strips.len();
 				scene.strips.push(strip);
 				Node::Strip(strip_at)
+			} else if scene.mappings[name_at].fields.contains_key("point") {
+				// This is not, in fact, a custom, it is a point.
+				let mut point = Point::new();
+
+				for (key, value) in scene.mappings[name_at].fields.iter() {
+					if key == "point" {
+						let vals = as_3d(scene, value);
+						point.loc = Point3D::from(vals?);
+					} else {
+						point.fields.insert(key.clone(), *value);
+					}
+				}
+				let point_at = scene.points.len();
+				scene.points.push(point);
+				Node::Point(point_at)
 			} else if scene.mappings[name_at].fields.contains_key("instance") {
 				// This is not, in fact, a custom, it is an instance. Convert it to such
 				let mut affected = Node::Bool(false); // guaranteed to be replaced since conditional forces it
@@ -460,6 +491,7 @@ pub fn to_ir(input: &Yaml) -> Result<Scene, String> {
 		world: Node::Bool(false),
 		sequences: vec![],
 		strips: vec![],
+		points: vec![],
 		rays: vec![],
 		instances: vec![],
 		mappings: vec![],

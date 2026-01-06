@@ -2,8 +2,8 @@
 	"tlas" : [ 0, 0 ],
 	"box_nodes" : [
 		{
-			"min_bounds" : [ -1, -6, 0 ],
-			"max_bounds" : [ 1.0000000000000002, -5, 5 ],
+			"min_bounds" : [ -1, -6, 2 ],
+			"max_bounds" : [ 1.0000000000000002, -5, 2 ],
 			"child_nodes" : [
 				[ 1, 0 ]
 			]

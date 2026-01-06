@@ -128,6 +128,23 @@ fn handle_node(
 				}
 			}
 		},
+		Node::Point(idx) => {
+			let point = &scene.points[*idx];
+			palette.update(point.fields.get("color"), lines, scene);
+			let vert = transform * homogenize_pt(&point.loc);
+			const POINT_RADIUS: f64 = 0.01;
+			lines.push("".to_string());
+			lines.push(format!("o point{}", *idx));
+			lines.push(format!("v {} {} {}", vert.x - POINT_RADIUS, vert.y, vert.z));
+			lines.push(format!("v {} {} {}", vert.x + POINT_RADIUS, vert.y, vert.z));
+			lines.push(format!("v {} {} {}", vert.x, vert.y - POINT_RADIUS, vert.z));
+			lines.push(format!("v {} {} {}", vert.x, vert.y + POINT_RADIUS, vert.z));
+			lines.push(format!("v {} {} {}", vert.x, vert.y, vert.z - POINT_RADIUS));
+			lines.push(format!("v {} {} {}", vert.x, vert.y, vert.z + POINT_RADIUS));
+			lines.push("l -6 -5".to_string());
+			lines.push("l -4 -3".to_string());
+			lines.push("l -2 -1".to_string());
+		},
 		Node::Ray(idx) => {
 			let ray = &scene.rays[*idx];
 			palette.update(ray.fields.get("color"), lines, scene);
@@ -143,6 +160,35 @@ fn handle_node(
 			lines.push(format!("v {} {} {}", origin.x, origin.y, origin.z));
 			lines.push(format!("v {} {} {}", dest.x, dest.y, dest.z));
 			lines.push("l -2 -1".to_string()); // line from penultimate vertex to ultimate
+
+			let has_head = match ray.fields.get("headless") {
+				Some(Node::Bool(v)) => !*v,
+				_ => true,
+			};
+			if has_head {
+				// produce arrowhead using two perpendicular lines
+				const HEAD_RATIO: f64 = 0.05;
+				let diff_orig = dest - origin;
+				let ray_mag = diff_orig.magnitude();
+				let diff = diff_orig / ray_mag;
+				let pos_y = Point3D::new(0.0, 1.0, 0.0);
+				let pos_x = Point3D::new(1.0, 0.0, 0.0);
+				let dummy = if diff == pos_y { pos_x } else { pos_y };
+				let cross0 = diff.cross(&dummy).normalize();
+				let cross1 = diff.cross(&cross0).normalize();
+				let cross = [cross0, cross1];
+				let mut to_dest = 1;
+
+				for cross_vec in cross {
+					let heads = [diff + cross_vec, diff - cross_vec];
+					for head in heads {
+						let actual = dest - head.normalize() * (ray_mag * HEAD_RATIO);
+						lines.push(format!("v {} {} {}", actual.x, actual.y, actual.z));
+						to_dest += 1;
+						lines.push(format!("l -1 -{}", to_dest));
+					}
+				}
+			}
 		},
 		Node::Instance(idx) => {
 			let instance = &scene.instances[*idx];

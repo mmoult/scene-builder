@@ -2,7 +2,7 @@ use crate::ir::{Mapping, Node, Point3D, Scene, Sequence, Strip, as_3d, homogeniz
 
 impl Node {
 	/// Recursively compute and set bounds for this node and its children.
-	pub fn set_bounds(&self, scene: &mut Scene) -> (Point3D, Point3D) {
+	pub fn set_bounds(&self, scene: &mut Scene, total_box: bool) -> (Point3D, Point3D) {
 		match self {
 			Node::Strip(idx) => {
 				let strip = &scene.strips[*idx];
@@ -16,27 +16,39 @@ impl Node {
 				}
 				(min, max)
 			},
-			Node::Ray(idx) => {
-				let ray = &scene.rays[*idx];
-				let rmin = new_point(ray.min);
-				let extent = new_point(ray.extent);
-				let start = ray.origin + ray.direction.component_mul(&rmin);
-				let end = ray.origin + ray.direction.component_mul(&extent);
-
-				let mut min = new_point(f64::NAN);
-				let mut max = new_point(f64::NAN);
-
-				for i in 0..3 {
-					min[i] = f64::min(min[i], f64::min(start[i], end[i]));
-					max[i] = f64::max(max[i], f64::max(start[i], end[i]));
+			Node::Point(idx) => {
+				if total_box {
+					let point = &scene.points[*idx];
+					(point.loc, point.loc)
+				} else {
+					(new_point(f64::NAN), new_point(f64::NAN))
 				}
-				(min, max)
+			},
+			Node::Ray(idx) => {
+				if total_box {
+					let ray = &scene.rays[*idx];
+					let rmin = new_point(ray.min);
+					let extent = new_point(ray.extent);
+					let start = ray.origin + ray.direction.component_mul(&rmin);
+					let end = ray.origin + ray.direction.component_mul(&extent);
+
+					let mut min = new_point(f64::NAN);
+					let mut max = new_point(f64::NAN);
+
+					for i in 0..3 {
+						min[i] = f64::min(min[i], f64::min(start[i], end[i]));
+						max[i] = f64::max(max[i], f64::max(start[i], end[i]));
+					}
+					(min, max)
+				} else {
+					(new_point(f64::NAN), new_point(f64::NAN))
+				}
 			},
 			Node::Instance(idx) => {
 				let instance = &scene.instances[*idx];
 				let mult = instance.obj_to_world();
 				let affected = scene.instances[*idx].affected;
-				let (amin, amax) = affected.set_bounds(scene);
+				let (amin, amax) = affected.set_bounds(scene, total_box);
 
 				let mut min = new_point(f64::NAN);
 				let mut max = new_point(f64::NAN);
@@ -89,7 +101,7 @@ impl Node {
 				if let Some(Node::Sequence(idx)) = map.fields.get("data") {
 					let seq = &scene.sequences[*idx];
 					for element in seq.vals.clone() {
-						let (emin, emax) = element.set_bounds(scene);
+						let (emin, emax) = element.set_bounds(scene, total_box);
 						for i in 0..3 {
 							mins[i] = f64::min(mins[i], emin[i]);
 							maxs[i] = f64::max(maxs[i], emax[i]);
@@ -147,23 +159,11 @@ fn replace(scene: &mut Scene, before: &Node, after: &Node, curr: &Node) {
 }
 
 /// Transformation "main", so to speak. Launches all requested transformations on the scene.
-/// @param scene The scene to transform.
-/// @param root Whether to box the root node if it is not already a mapping.
-/// @param wrap Box any instance children which aren't boxes
-/// @param box_size Maximum number of children per box. 0 indicates unbounded.
-/// @param double Transform every box to either hold one child of any type OR hold multiple boxes
-/// @param triangle Whether to split tri-strips into individual triangles.
-/// @param raw Whether to generate no boxes at all.
-pub fn transform(
-	scene: &mut Scene,
-	root: bool,
-	wrap: bool,
-	box_size: u8,
-	double: bool,
-	triangle: bool,
-	raw: bool,
-) {
-	if root {
+/// @param scene The scene to transform
+/// @param args Program arguments which are used to enable various options
+/// @param triangle Whether to split tri-strips into individual triangles
+pub fn transform(scene: &mut Scene, args: &crate::args::Args, triangle: bool) {
+	if args.root {
 		let should_box = match scene.world {
 			Node::Mapping(_) => {
 				// If the root is already a mapping, we cannot do anything more. If it has legal
@@ -259,7 +259,7 @@ pub fn transform(
 		}
 	}
 
-	if wrap {
+	if args.wrap {
 		fn wrap_inst_kid(scene: &mut Scene, node: &Node) {
 			fn recursive(scene: &mut Scene, mapping: usize) {
 				if let Some(Node::Sequence(idx)) = scene.mappings[mapping].fields.get("data") {
@@ -295,20 +295,20 @@ pub fn transform(
 		wrap_inst_kid(scene, &scene.world.clone());
 	}
 
-	if box_size != 0 {
+	if args.box_size != 0 {
 		// Split any box which has too many children
 		todo!();
 	}
 
-	if double {
+	if args.double {
 		todo!();
 	}
 
 	// The last transformation is to add box data to mappings where necessary
 	let world = scene.world;
-	world.set_bounds(scene);
+	world.set_bounds(scene, args.total_box);
 
-	if raw {
+	if args.raw {
 		// If raw is enabled, we must flatten all mappings
 		// Note, this cannot be used in generating BVH output, since that doesn't make sense
 		todo!();

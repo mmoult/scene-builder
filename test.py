@@ -7,7 +7,8 @@ import os
 #=======================================================================================================================
 
 parser = argparse.ArgumentParser(description="Run all integration tests for scene-builder.")
-parser.add_argument('--verbose', '-v', action='store_true', help="Print all found tests and launch command.")
+parser.add_argument("--regen", "-r", action="store_true", help="Regenerate expected output files.")
+parser.add_argument("--verbose", "-v", action="store_true", help="Print all found tests and launch command.")
 args = parser.parse_args()
 
 # Check that the interpreter has been built
@@ -33,9 +34,6 @@ def eq_file(got, expected_file):
     with open(expected_file, "rb") as f:
         seen = f.read()
     return seen == got
-
-import sys
-regen = len(sys.argv) > 1 and sys.argv[1] == "regen"
 
 fails = 0
 total = 0
@@ -65,7 +63,7 @@ def run(root, scene, out, format, regen, cmd_args):
 
     if status is not None:
         if args.verbose:
-            print(status, ' '.join(cmd))
+            print(status, " ".join(cmd))
             for report in reports:
                 print(" ", report)
         else:
@@ -94,9 +92,9 @@ for (root, dirs, files) in os.walk(example_path, topdown=True):
 
     if scene is not None:
         if obj_out is not None:
-            run(root, scene, obj_out, "obj", regen, cmd_args)
+            run(root, scene, obj_out, "obj", args.regen, cmd_args)
         if bvh_json_out is not None:
-            run(root, scene, bvh_json_out, "bvh", regen, cmd_args)
+            run(root, scene, bvh_json_out, "bvh", args.regen, cmd_args)
 
 # Print results
 if total == 0:
@@ -104,8 +102,8 @@ if total == 0:
     exit(1)
 else:
     if fails == 0:
-        print("PASS", end='')
+        print("PASS", end="")
     else:
-        print("FAIL", end='')
+        print("FAIL", end="")
 print(": ", (total - fails), "/", total)
 exit(fails)

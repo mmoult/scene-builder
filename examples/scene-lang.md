@@ -5,11 +5,11 @@ The scene language is a subset of YAML format. Each scene may define objects and
 Table of Contents:
 - [Object](#object)
     * [Strip](#strip)
+    * [Point](#point)
     * [Ray](#ray)
     * [Instance](#instance)
     * [Custom](#custom)
 - [References](#references)
-    * [Keywords](#keywords)
 - [World](#world)
 
 ## Object
@@ -85,6 +85,36 @@ other triangle in a strip are defined in inverted-listing order. Therefore, we w
 
 The pattern continues as expected if more vertices are used in a single triangle strip.
 
+| Field           | Type   | Default            | target  | Description |
+|-----------------|--------|--------------------|---------|-------------|
+| color           | uint3  | inherited          | obj     | RGB color to use when drawing. If not provided, inherited from containing object. If none provided, black ([0, 0, 0]) is assumed.
+| geometry_index  | uint   | 0                  | bvh     | index to determine hit properties
+| opaque          | bool   | true               | both    | Whether the triangles in the strip should be drawn filled in (for obj) and never let any rays through (for bvh)
+| primitive_index | uint   | uniquely generated | bvh     | index used for geometry identification
+| strip           | sequence of 3+ float3s | mandatory | both | the list of vertices
+
+### Point
+
+An object to annotate a point in 3D space. A simple example would look like:
+
+```
+point: [0.1, 2.3, 4.5]
+```
+
+And a more complex variant may own custom and/or builtin fields:
+
+```
+point: [-1.0, 0.6, 789.0]
+color: [255, 0, 255]
+```
+
+The point has no direct counterpart in the BVH target, and will therefore be discarded before output.
+
+| Field           | Type   | Default            | target  | Description |
+|-----------------|--------|--------------------|---------|-------------|
+| color           | uint3  | inherited          | obj     | RGB color to use when drawing. If not provided, inherited from containing object. If none provided, black ([0, 0, 0]) is assumed.
+| point           | float3 | mandatory          | obj     | the location in 3D space
+
 ### Ray
 
 In purely mathematical terms, a ray is geometry defined by an origin point and a direction. However, since the scene
@@ -105,7 +135,17 @@ This defines a line segment from (-4.3, 2.8, -9.6) to (5.7, 12.8, -9.6).
 If the direction is normalized, then the length of the line segment the `ray` forms is equal to its `max`. However,
 there is no requirement in the language for the direction to be normalized (that choice is left to the user).
 
-It is also worth mentioning the optional field `min`, which serves as an opposite bound to `max`.
+Ray has an optional field, `min`, which serves as an opposite bound to `max`.
+
+The ray has no direct counterpart in the BVH target, and will therefore be discarded before output.
+
+| Field           | Type     | Default            | target  | Description |
+|-----------------|----------|--------------------|---------|-------------|
+| color           | uint3    | inherited          | obj     | RGB color to use when drawing. If not provided, inherited from containing object. If none provided, black ([0, 0, 0]) is assumed.
+| direction       | float3   | mandatory          | obj     | vector of the 3 direction components: x, y, z
+| origin          | float3   | mandatory          | obj     | origin point of the ray in 3D space
+| max             | float    | mandatory          | obj     | the parametric domain maximum of the ray
+| min             | float    | 0                  | obj     | the parametric domain minimum of the ray
 
 ### Instance
 
@@ -141,6 +181,14 @@ rotate: [45, 0, 90]
 translate: [3, -7, -5.2]
 ```
 
+| Field     | Type     | Default         | target | Description |
+|---------- |----------|-----------------|--------|-------------|
+| color     | uint3    | inherited       | obj    | RGB color to use when drawing. If not provided, inherited from containing object. If none provided, black ([0, 0, 0]) is assumed.
+| instance  | object   | mandatory       | both   | the object to transform
+| rotate    | float3   | [0.0, 0.0, 0.0] | both   | rotation, in degrees, for the 3 rotation axes: x, y, z
+| scale     | float3   | [1.0, 1.0, 1.0] | both   | multiplication factors of the transformed in 3D
+| translate | float3   | [0.0, 0.0, 0.0] | both   | offset values for the 3 component dimensions
+
 ### Custom
 
 Custom composite objects can be made by combining primitive objects (`strip` and `ray`) with each other and/or other
@@ -165,8 +213,14 @@ data:
 - origin: [1, 2, 3]
   direction: [0, 0.5, 1.0]
   max: 6
-wireframe: true
+opaque: true
 ```
+
+| Field     | Type            | Default         | target | Description |
+|---------- |-----------------|-----------------|--------|-------------|
+| color     | uint3           | inherited       | obj    | RGB color to use when drawing. If not provided, inherited from containing object. If none provided, black ([0, 0, 0]) is assumed.
+| data      | object sequence | mandatory       | both   | a list of the objects to render if this is rendered
+| opaque    | bool            | false           | bvh    | whether the box should be drawn filled (true) or wireframe (false)
 
 ## References
 Any time a value appears in any object, a reference may be substituted instead (provided that the type of the reference
@@ -218,27 +272,6 @@ color from the root-level `foo`. In summary:
 | `omega` | (0, 255, 255)  | N/A              |
 | `beta`  | (0, 255, 255)  | (0, 255, 255)    |
 | `baz`   | (255, 0, 255)  | (255, 0, 255)    |
-
-### Keywords
-
-When defining custom values, refrain from using the following names, which have builtin meaning
-(ordered alphabetically):
-
-- `color`: field expecting a 3-component vector of uint (where 0 is none and 255 is max). Inherited from parent if not
-           provided. If none found, black is used (0, 0, 0)
-- `data`: used to create a custom object
-- `direction`: ray field expecting a 3-component float vector value
-- `false`: boolean constant value
-- `instance`: instance field expecting a reference or literal object to transform
-- `max`: ray field expecting a float value specifying maximum direction from origin OR
-         custom object field expecting a 3-component float sequence specifying maxima
-- `min`: ray field expecting a float value specifying minimum direction from origin OR
-         custom object field expecting a 3-component float sequence specifying minima
-- `opaque`: custom object field expecting a boolean value whether the box should be filled (true) or wireframe (false).
-            Defaults to false if not provided.
-- `origin`: ray field expecting a 3-component float vector value
-- `strip`: strip field expecting a list value of 3-component float vertices
-- `true`: boolean constant value
 
 ## World
 

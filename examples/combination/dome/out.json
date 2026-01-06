@@ -3,7 +3,7 @@
 	"box_nodes" : [
 		{
 			"min_bounds" : [ -2, -2, -1 ],
-			"max_bounds" : [ 2, 6, 1 ],
+			"max_bounds" : [ 2, 2, 1 ],
 			"child_nodes" : [
 				[ 1, 0 ]
 			]

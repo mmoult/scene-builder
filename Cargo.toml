@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.5.37", features = ["derive"] }
-yaml-rust2 = "0.10.1"
+clap = { version = "4.5.54", features = ["derive"] }
+yaml-rust2 = "0.11.0"
 nalgebra = "0.34.1"
 colored = "3.0.0"
