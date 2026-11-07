@@ -16,15 +16,14 @@ impl Node {
 				}
 				(min, max)
 			},
-			Node::Point(idx) => {
+			Node::Point(idx) =>
 				if total_box {
 					let point = &scene.points[*idx];
 					(point.loc, point.loc)
 				} else {
 					(new_point(f64::NAN), new_point(f64::NAN))
-				}
-			},
-			Node::Ray(idx) => {
+				},
+			Node::Ray(idx) =>
 				if total_box {
 					let ray = &scene.rays[*idx];
 					let rmin = new_point(ray.min);
@@ -42,8 +41,7 @@ impl Node {
 					(min, max)
 				} else {
 					(new_point(f64::NAN), new_point(f64::NAN))
-				}
-			},
+				},
 			Node::Instance(idx) => {
 				let instance = &scene.instances[*idx];
 				let mult = instance.obj_to_world();
@@ -197,11 +195,10 @@ pub fn transform(scene: &mut Scene, args: &crate::args::Args, triangle: bool) {
 		let mut tris = vec![];
 		fn find_to_split(scene: &Scene, tris: &mut Vec<usize>, node: &Node) {
 			match node {
-				Node::Strip(idx) => {
+				Node::Strip(idx) =>
 					if scene.strips[*idx].vals.len() > 3 {
 						tris.push(*idx);
-					}
-				},
+					},
 				Node::Instance(idx) => {
 					find_to_split(scene, tris, &scene.instances[*idx].affected);
 				},

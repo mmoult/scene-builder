@@ -34,15 +34,11 @@ pub struct Sequence {
 	pub vals: Vec<Node>,
 }
 impl Sequence {
-	pub fn new() -> Sequence {
-		Sequence { vals: vec![] }
-	}
+	pub fn new() -> Sequence { Sequence { vals: vec![] } }
 }
 
 pub type Point3D = nalgebra::Vector3<f64>;
-pub fn new_point(val: f64) -> Point3D {
-	Point3D::new(val, val, val)
-}
+pub fn new_point(val: f64) -> Point3D { Point3D::new(val, val, val) }
 
 pub struct Point {
 	pub loc: Point3D,
@@ -175,9 +171,7 @@ pub fn homogenize(m: &TransformMat) -> SquareMat {
 	]
 }
 
-pub fn homogenize_pt(p: &Point3D) -> HomoPoint {
-	HomoPoint::new(p.x, p.y, p.z, 1.0)
-}
+pub fn homogenize_pt(p: &Point3D) -> HomoPoint { HomoPoint::new(p.x, p.y, p.z, 1.0) }
 
 pub struct Mapping {
 	pub fields: HashMap<String, Node>,
@@ -243,33 +237,26 @@ pub fn as_3d(scene: &Scene, node: &Node) -> Result<Point3D, String> {
 	}
 }
 
-fn resolve<'a>(namespace: &[usize], scene: &'a Scene, name: &str) -> Option<&'a Node> {
-	for idx in namespace.iter().rev() {
-		match scene.mappings[*idx].fields.get(name) {
-			None => {},
-			Some(found) => return Some(found),
-		}
-	}
-	None
-}
-
-fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<Node, String> {
+fn parse(input: &Yaml, enclosing: Option<usize>, scene: &mut Scene) -> Result<Node, String> {
 	let ret = match input {
 		Yaml::Real(fp) => match fp.parse::<f64>() {
 			Ok(val) => Node::Number(val),
 			Err(_) => return Err(format!("Could not parse float number {fp}!")),
 		},
 		Yaml::Integer(val) => Node::Number(*val as f64),
-		Yaml::String(name) => match resolve(namespace, scene, name) {
-			Some(found) => *found,
-			None => return Err(format!("Could not resolve reference \"{name}\"!")),
+		Yaml::String(name) => match enclosing {
+			Some(idx) => match scene.mappings[idx].fields.get(name) {
+				None => return Err(format!("Could not resolve name \"{name}\"!")),
+				Some(node) => *node,
+			},
+			None => return Err(format!("Could not resolve name \"{name}\" at top scope!")),
 		},
 		Yaml::Boolean(val) => Node::Bool(*val),
 		Yaml::Array(arr) => {
 			let mut nodes = vec![];
 
 			for element in arr {
-				let node = parse(element, namespace, scene)?;
+				let node = parse(element, enclosing, scene)?;
 				nodes.push(node);
 			}
 
@@ -283,16 +270,27 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 		Yaml::Hash(map) => {
 			let name_at = scene.mappings.len();
 			scene.mappings.push(Mapping::new());
-			namespace.push(name_at);
+			// If this is in a map, inherit fields
+			if let Some(enclosing) = enclosing {
+				let (before_child, child_and_after) = scene.mappings.split_at_mut(name_at);
+				let parent_fields = &before_child[enclosing].fields;
+				let child_fields = &mut child_and_after[0].fields;
+
+				for (name, val) in parent_fields {
+					if name != "data" {
+						child_fields.insert(name.clone(), *val);
+					}
+				}
+			}
 			for (name, val) in map.iter() {
 				let name = match name {
 					Yaml::String(n) => n,
 					_ => return Err("Name in YAML field found to be non-string!".to_string()),
 				};
-				let node = parse(val, namespace, scene)?;
+				let node = parse(val, Some(name_at), scene)?;
+				// Note: this overrides any entry inherited from the parent!
 				scene.mappings[name_at].fields.insert(name.clone(), node);
 			}
-			namespace.pop();
 
 			// Create the result from the top namespace. Recognize various types:
 			if let Some(node) = scene.mappings[name_at].fields.get("data") {
@@ -379,7 +377,8 @@ fn parse(input: &Yaml, namespace: &mut Vec<usize>, scene: &mut Scene) -> Result<
 				Node::Point(point_at)
 			} else if scene.mappings[name_at].fields.contains_key("instance") {
 				// This is not, in fact, a custom, it is an instance. Convert it to such
-				let mut affected = Node::Bool(false); // guaranteed to be replaced since conditional forces it
+				// bool is guaranteed to be replaced since conditional forces it
+				let mut affected = Node::Bool(false);
 				// These can be replaced, but all are optional:
 				let mut scale = new_point(1.0);
 				let mut rotate = new_point(0.0);
@@ -497,9 +496,7 @@ pub fn to_ir(input: &Yaml) -> Result<Scene, String> {
 		mappings: vec![],
 	};
 
-	let mut namespace: Vec<usize> = vec![];
-	scene.world = parse(input, &mut namespace, &mut scene)?;
-
+	scene.world = parse(input, None, &mut scene)?;
 	Ok(scene)
 }
 

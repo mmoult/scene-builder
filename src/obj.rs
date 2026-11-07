@@ -113,15 +113,30 @@ fn handle_node(
 			lines.push(format!("o strip{}", *idx));
 			let mut inverse = false;
 			let mut count = 0;
+			let opacity = match strip.fields.get("opaque") {
+				Some(Node::Bool(v)) => *v,
+				_ => true,
+			};
 			for vert in strip.vals.iter() {
 				let point = transform * homogenize_pt(vert);
 				lines.push(format!("v {} {} {}", point.x, point.y, point.z));
 				if count >= 2 {
-					if inverse {
-						lines.push("f -2 -3 -1".to_string());
-					} else {
-						lines.push("f -3 -2 -1".to_string());
-					}
+					lines.push(
+						if inverse {
+							if opacity {
+								"f -2 -3 -1"
+							} else {
+								"l -2 -3 -1 -2"
+							}
+						} else {
+							if opacity {
+								"f -3 -2 -1"
+							} else {
+								"l -3 -2 -1 -3"
+							}
+						}
+						.to_string(),
+					);
 					inverse = !inverse;
 				} else {
 					count += 1;

@@ -95,7 +95,7 @@ fn main() -> Result<(), String> {
 		use std::fs::File;
 		let mut writer = match File::create(&args.out) {
 			Ok(f) => f,
-			Err(_) => return Err(format!("Could not write output to file \"{}\"!", &args.out)),
+			Err(_) => return Err(format!("Could not write output to file \"{}\"!", args.out)),
 		};
 		use std::io::Write;
 		for line in lines.iter() {
@@ -104,7 +104,7 @@ fn main() -> Result<(), String> {
 				Err(_) => {
 					return Err(format!(
 						"Failure in writing output to file \"{}\"!",
-						&args.out
+						args.out
 					));
 				},
 			}

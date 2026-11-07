@@ -1,0 +1,36 @@
+{
+	"tlas" : [ 0, 0 ],
+	"box_nodes" : [
+		{
+			"min_bounds" : [ 0, 0, -0.5 ],
+			"max_bounds" : [ 2, 1, 0 ],
+			"child_nodes" : [
+				[ 2, 0 ],
+				[ 3, 0 ]
+			]
+		}
+	],
+	"instance_nodes" : [
+	],
+	"triangle_nodes" : [
+		{
+			"geometry_index" : 0,
+			"primitive_index" : 0,
+			"opaque" : true,
+			"vertices" : [
+				[ 1, 0, 0 ],
+				[ 1, 1, 0 ],
+				[ 0, 0.5, -0.5 ]
+			]
+		}
+	],
+	"procedural_nodes" : [
+		{
+			"min_bounds" : [ 1, 0, 0 ],
+			"max_bounds" : [ 2, 1, 0 ],
+			"opaque" : true,
+			"geometry_index" : 0,
+			"primitive_index" : 4
+		}
+	]
+}

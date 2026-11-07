@@ -18,7 +18,7 @@ An object describes a blueprint for a three-dimensional geometry within world-sp
 (`strip` and `ray`), which may be used directly or combined (via `instance` for transformational construction or
 `data` for custom types) into more complex types.
 
-Objects may define fields in additoin to the mandatory ones (excepting object `strip`, which is defined as a sequence,
+Objects may define fields in addition to the mandatory ones (excepting object `strip`, which is defined as a sequence,
 and therefore cannot have any direct fields). These fields may use custom names which may not be used by some or any
 export targets, but when a field is unsupported, it should be safely ignored.
 

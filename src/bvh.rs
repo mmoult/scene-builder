@@ -21,9 +21,7 @@ fn calculate_dead_delta(dead: &[usize], idx: &usize) -> Option<usize> {
 	Some(delta)
 }
 
-fn in_dead(dead: &[usize], idx: &usize) -> bool {
-	dead.binary_search(idx).is_ok()
-}
+fn in_dead(dead: &[usize], idx: &usize) -> bool { dead.binary_search(idx).is_ok() }
 
 fn to_major_minor(
 	node: &Node,
