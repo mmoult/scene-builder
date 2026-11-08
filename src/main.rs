@@ -29,6 +29,12 @@ fn main() -> Result<(), String> {
 		));
 	}
 
+	if args.box_size == 1 {
+		return Err(String::from(
+			"Box size cannot be 1! It is impossible to satisfy the size constraint from more than one child.",
+		));
+	}
+
 	// parse file and check syntax
 	let path = args.input.clone();
 	let file = match std::fs::read_to_string(&path) {

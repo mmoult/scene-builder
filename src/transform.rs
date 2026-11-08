@@ -16,14 +16,15 @@ impl Node {
 				}
 				(min, max)
 			},
-			Node::Point(idx) =>
+			Node::Point(idx) => {
 				if total_box {
 					let point = &scene.points[*idx];
 					(point.loc, point.loc)
 				} else {
 					(new_point(f64::NAN), new_point(f64::NAN))
-				},
-			Node::Ray(idx) =>
+				}
+			},
+			Node::Ray(idx) => {
 				if total_box {
 					let ray = &scene.rays[*idx];
 					let rmin = new_point(ray.min);
@@ -41,7 +42,8 @@ impl Node {
 					(min, max)
 				} else {
 					(new_point(f64::NAN), new_point(f64::NAN))
-				},
+				}
+			},
 			Node::Instance(idx) => {
 				let instance = &scene.instances[*idx];
 				let mult = instance.obj_to_world();
@@ -156,6 +158,40 @@ fn replace(scene: &mut Scene, before: &Node, after: &Node, curr: &Node) {
 	}
 }
 
+fn distribute(total: usize, size: usize) -> Vec<usize> {
+	// How should excess children be stored? Should they be equally distributed (leading to balance, but potentially
+	// more boxes) or dumped (fewer boxes, but heavy imbalance)? Ideally, we have a hybrid method of dumping until box
+	// limits, at which point: spread.
+	// That only accounts for count. Within 3D space, we would want to cluster like-coordinates in the same boxes.
+	// However, this is very challenging to do, so we will assume children are ordered proximately.
+	let mut distrib = vec![0; size];
+	let mut remaining = total;
+
+	let mut full = size;
+	let mut prev = 1;
+	while remaining > full * size {
+		prev = full;
+		full *= size;
+	}
+
+	for i in 0..size {
+		let min = prev * (size - i);
+		if remaining > min {
+			let extra = remaining - min;
+			let can = extra.min(full - prev) + prev;
+			distrib[i] = can;
+			remaining -= can;
+		} else {
+			for entry in &mut distrib[i..] {
+				*entry = prev;
+			}
+			break;
+		}
+	}
+
+	distrib
+}
+
 /// Transformation "main", so to speak. Launches all requested transformations on the scene.
 /// @param scene The scene to transform
 /// @param args Program arguments which are used to enable various options
@@ -195,10 +231,11 @@ pub fn transform(scene: &mut Scene, args: &crate::args::Args, triangle: bool) {
 		let mut tris = vec![];
 		fn find_to_split(scene: &Scene, tris: &mut Vec<usize>, node: &Node) {
 			match node {
-				Node::Strip(idx) =>
+				Node::Strip(idx) => {
 					if scene.strips[*idx].vals.len() > 3 {
 						tris.push(*idx);
-					},
+					}
+				},
 				Node::Instance(idx) => {
 					find_to_split(scene, tris, &scene.instances[*idx].affected);
 				},
@@ -294,7 +331,49 @@ pub fn transform(scene: &mut Scene, args: &crate::args::Args, triangle: bool) {
 
 	if args.box_size != 0 {
 		// Split any box which has too many children
-		todo!();
+
+		// We use a "manual for loop" here because we append new mappings which must be checked.
+		let mut map_idx: usize = 0;
+		while map_idx < scene.mappings.len() {
+			let cur_map = map_idx;
+			map_idx += 1;
+
+			let data = scene.mappings[cur_map].fields.get("data").copied();
+			if let Some(Node::Sequence(idx)) = data {
+				let len = scene.sequences[idx].vals.len();
+				if len > args.box_size {
+					// This box has too many children. Determine a suitable distribution.
+					assert!(args.box_size > 1);
+					let counts = distribute(len, args.box_size);
+
+					for (i, count) in counts.iter().enumerate() {
+						if *count == 1 {
+							// If count is at min, there are no more children to break up
+							break;
+						}
+
+						// The new map must inherit all fields from the old
+						let new = scene.mappings[cur_map].clone();
+						let new_at = scene.mappings.len();
+						scene.mappings.push(new);
+
+						// Create a sequence for the new map
+						let child_seq_at = scene.sequences.len();
+						scene.sequences.push(Sequence::new());
+						scene.mappings[new_at]
+							.fields
+							.insert("data".to_string(), Node::Sequence(child_seq_at));
+
+						// Move all children from the old sequence to the new map's
+						for _ in 0..*count {
+							let moved = scene.sequences[idx].vals.remove(i);
+							scene.sequences[child_seq_at].vals.push(moved);
+						}
+						scene.sequences[idx].vals.insert(i, Node::Mapping(new_at));
+					}
+				}
+			}
+		}
 	}
 
 	if args.double {
@@ -309,5 +388,60 @@ pub fn transform(scene: &mut Scene, args: &crate::args::Args, triangle: bool) {
 		// If raw is enabled, we must flatten all mappings
 		// Note, this cannot be used in generating BVH output, since that doesn't make sense
 		todo!();
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn distribute_trivial() {
+		assert_eq!(distribute(4, 4), vec![1, 1, 1, 1]);
+	}
+
+	#[test]
+	fn distribute_5_4() {
+		assert_eq!(distribute(5, 4), vec![2, 1, 1, 1]);
+	}
+
+	#[test]
+	fn distribute_10_4() {
+		assert_eq!(distribute(10, 4), vec![4, 4, 1, 1]);
+	}
+
+	#[test]
+	fn distribute_12_4() {
+		assert_eq!(distribute(12, 4), vec![4, 4, 3, 1]);
+	}
+
+	#[test]
+	fn distribute_15_4() {
+		assert_eq!(distribute(15, 4), vec![4, 4, 4, 3]);
+	}
+
+	#[test]
+	fn distribute_16_4() {
+		assert_eq!(distribute(16, 4), vec![4, 4, 4, 4]);
+	}
+
+	#[test]
+	fn distribute_17_4() {
+		assert_eq!(distribute(17, 4), vec![5, 4, 4, 4]);
+	}
+
+	#[test]
+	fn distribute_28_4() {
+		assert_eq!(distribute(28, 4), vec![16, 4, 4, 4]);
+	}
+
+	#[test]
+	fn distribute_31_4() {
+		assert_eq!(distribute(31, 4), vec![16, 7, 4, 4]);
+	}
+
+	#[test]
+	fn distribute_14_3() {
+		assert_eq!(distribute(14, 3), vec![8, 3, 3]);
 	}
 }
